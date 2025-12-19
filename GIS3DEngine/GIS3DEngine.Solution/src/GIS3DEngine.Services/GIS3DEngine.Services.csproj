@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>GIS3DEngine.Services</RootNamespace>
+    <AssemblyName>GIS3DEngine.Services</AssemblyName>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GIS3DEngine.Core\GIS3DEngine.Core.csproj" />
+  </ItemGroup>
+
+</Project>

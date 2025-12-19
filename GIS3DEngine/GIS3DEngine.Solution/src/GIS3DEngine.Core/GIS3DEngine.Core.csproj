@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>GIS3DEngine.Core</RootNamespace>
+    <AssemblyName>GIS3DEngine.Core</AssemblyName>
+    <Version>1.0.0</Version>
+    <Authors>GIS3DEngine</Authors>
+    <Description>Core geometry, spatial, and animation library for GIS 3D visualization</Description>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+</Project>
