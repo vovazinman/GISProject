@@ -703,11 +703,16 @@ class Program
     {
         Console.WriteLine("\n[AI] Thinking...");
 
-        await foreach (var chunk in assistant.StreamChatAsync(message))
+        // Use ChatAsync instead of StreamChatAsync
+        var response = await assistant.ChatAsync(message);
+
+        Console.WriteLine($"\n[AI] {response.Text}");
+
+        // If AI detected a command
+        if (response.HasCommand && response.Command != null)
         {
-            Console.Write(chunk);
+            Console.WriteLine($"\n[*] Detected command: {response.Command.Command}");
         }
-        Console.WriteLine();
     }
 
     private static async Task HandleCommand(DroneAssistant assistant, string command)
