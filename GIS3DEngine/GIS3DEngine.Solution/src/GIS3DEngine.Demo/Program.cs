@@ -599,9 +599,11 @@ class Program
         Console.WriteLine("║          🤖 Test 10: AI Module - Anthropic Integration       ║");
         Console.WriteLine("╚══════════════════════════════════════════════════════════════╝\n");
 
-        // בקשת API Key
-        Console.Write("🔑 הכנס Anthropic API Key (או Enter לדילוג): ");
-        var apiKey = Console.ReadLine()?.Trim();
+        //// בקשת API Key
+        //Console.Write("🔑 הכנס Anthropic API Key (או Enter לדילוג): ");
+        //var apiKey = Console.ReadLine()?.Trim();
+
+        var apiKey = AppConfig.AnthropicApiKey;
 
         if (string.IsNullOrEmpty(apiKey))
         {

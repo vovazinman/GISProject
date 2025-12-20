@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -13,6 +13,18 @@
     <ProjectReference Include="..\..\GIS3DEngine.Drones\GIS3DEngine.Drones.csproj" />
     <ProjectReference Include="..\GIS3DEngine.Core\GIS3DEngine.Core.csproj" />
     <ProjectReference Include="..\GIS3DEngine.Services\GIS3DEngine.Services.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.1" />
+  </ItemGroup>
+  <ItemGroup>
+	<None Update="appsettings.local.json">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</None>
+	<None Update="appsettings.json">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</None>
   </ItemGroup>
 
 </Project>

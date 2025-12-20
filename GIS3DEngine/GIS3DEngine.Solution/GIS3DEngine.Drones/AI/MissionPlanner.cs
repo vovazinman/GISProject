@@ -166,7 +166,7 @@ public class MissionPlanner
 
     private SurveyMission GenerateSurveyMission(MissionPlan plan, Vector3D homePosition)
     {
-        var vertices = ParseVertices(plan.Parameters.GetValueOrDefault("area_vertices"));
+        var vertices = ParseVectorList(plan.Parameters.GetValueOrDefault("area_vertices"));
         var pattern = ParseSurveyPattern(plan.Parameters.GetValueOrDefault("pattern")?.ToString());
         var lineSpacing = GetDouble(plan.Parameters, "line_spacing", 20);
 
@@ -185,7 +185,7 @@ public class MissionPlanner
 
     private PatrolMission GeneratePatrolMission(MissionPlan plan, Vector3D homePosition)
     {
-        var points = ParseVertices(plan.Parameters.GetValueOrDefault("patrol_points"));
+        var points = ParseVectorList(plan.Parameters.GetValueOrDefault("patrol_points"));
         var loops = GetInt(plan.Parameters, "loops", 1);
         var pause = GetDouble(plan.Parameters, "pause_at_waypoints", 5);
 
@@ -265,7 +265,7 @@ public class MissionPlanner
 
     private WaypointMission GenerateWaypointMission(MissionPlan plan, Vector3D homePosition)
     {
-        var waypoints = ParseVertices(plan.Parameters.GetValueOrDefault("waypoints"));
+        var waypoints = ParseWaypointList(plan.Parameters.GetValueOrDefault("waypoints"));
 
         return new WaypointMission
         {
@@ -360,7 +360,10 @@ public class MissionPlanner
         return MissionPlan.Invalid("No JSON found in response");
     }
 
-    private List<Vector3D> ParseVertices(object? value)
+    /// <summary>
+    /// Parse JSON to List of Vector3D (for Survey, Patrol)
+    /// </summary>
+    private List<Vector3D> ParseVectorList(object? value)
     {
         if (value == null) return new List<Vector3D>();
 
@@ -381,6 +384,38 @@ public class MissionPlanner
         catch { }
 
         return new List<Vector3D>();
+    }
+
+    /// <summary>
+    /// Parse JSON to List of MissionWaypoint (for Waypoint mission)
+    /// </summary>
+    private List<MissionWaypoint> ParseWaypointList(object? value)
+    {
+        if (value == null) return new List<MissionWaypoint>();
+
+        try
+        {
+            if (value is JsonElement element && element.ValueKind == JsonValueKind.Array)
+            {
+                var result = new List<MissionWaypoint>();
+                foreach (var item in element.EnumerateArray())
+                {
+                    var vec = ParseVector3D(item);
+                    if (vec.HasValue)
+                    {
+                        result.Add(new MissionWaypoint
+                        {
+                            Position = vec.Value,
+                            Altitude = vec.Value.Z
+                        });
+                    }
+                }
+                return result;
+            }
+        }
+        catch { }
+
+        return new List<MissionWaypoint>();
     }
 
     private Vector3D? ParseVector3D(object? value)
@@ -465,6 +500,7 @@ public class MissionPlanner
 
     #region Default Generators
 
+    /// <summary>Default survey area - returns Vector3D list</summary>
     private List<Vector3D> DefaultSurveyArea(Vector3D home) => new()
     {
         home + new Vector3D(0, 0, 0),
@@ -473,6 +509,7 @@ public class MissionPlanner
         home + new Vector3D(0, 100, 0)
     };
 
+    /// <summary>Default patrol path - returns Vector3D list</summary>
     private List<Vector3D> DefaultPatrolPath(Vector3D home) => new()
     {
         home + new Vector3D(50, 0, 0),
@@ -481,12 +518,13 @@ public class MissionPlanner
         home + new Vector3D(0, 0, 0)
     };
 
-    private List<Vector3D> DefaultWaypoints(Vector3D home) => new()
+    /// <summary>Default waypoints - returns MissionWaypoint list</summary>
+    private List<MissionWaypoint> DefaultWaypoints(Vector3D home) => new()
     {
-        home + new Vector3D(30, 0, 50),
-        home + new Vector3D(60, 30, 50),
-        home + new Vector3D(30, 60, 50),
-        home + new Vector3D(0, 30, 50)
+        new MissionWaypoint { Position = home + new Vector3D(30, 0, 0), Altitude = 50 },
+        new MissionWaypoint { Position = home + new Vector3D(60, 30, 0), Altitude = 50 },
+        new MissionWaypoint { Position = home + new Vector3D(30, 60, 0), Altitude = 50 },
+        new MissionWaypoint { Position = home + new Vector3D(0, 30, 0), Altitude = 50 }
     };
 
     #endregion
