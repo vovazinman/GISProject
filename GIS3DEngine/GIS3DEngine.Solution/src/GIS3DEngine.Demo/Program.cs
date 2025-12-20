@@ -1,9 +1,16 @@
-using GIS3DEngine.Core.Primitives;
-using GIS3DEngine.Core.Interfaces;
-using GIS3DEngine.Core.Geometry;
 using GIS3DEngine.Core.Animation;
+using GIS3DEngine.Core.Geometry;
+using GIS3DEngine.Core.Interfaces;
+using GIS3DEngine.Core.Primitives;
 using GIS3DEngine.Core.Spatial;
+using GIS3DEngine.Drones.AI;
+using GIS3DEngine.Drones.Core;
+using GIS3DEngine.Drones.Fleet;
+using GIS3DEngine.Drones.Missions;
+using GIS3DEngine.Drones.Telemetry;
 using GIS3DEngine.Services;
+using System.IO;
+using System.Text;
 
 namespace GIS3DEngine.Demo;
 
@@ -22,27 +29,33 @@ class Program
 
         // Demo 1: Polygon Creation and Validation
         DemoPolygonCreation();
-        
+
         // Demo 2: 3D Extrusion
         Demo3DExtrusion();
-        
+
         // Demo 3: Pyramid Generation
         DemoPyramidGeneration();
-        
+
         // Demo 4: GIS Coordinate Transformations
         DemoCoordinateTransformations();
-        
+
         // Demo 5: Flight Path Animation
         DemoFlightAnimation();
-        
+
         // Demo 6: Spatial Queries
         DemoSpatialQueries();
-        
+
         // Demo 7: Export to File Formats
         DemoExport();
-        
+
         // Demo 8: Complete Scene
         DemoCompleteScene();
+
+        //Demo 9: Drones Test
+        DemoDronesTest();
+
+        //Demo 10: Drones Fleet Management Test
+        DemoDronesFleetTest();
 
         Console.WriteLine("\n✅ All demos completed successfully!");
     }
@@ -118,10 +131,10 @@ class Program
         Console.WriteLine($"  Bounds: {prism.Bounds}");
 
         // Tapered extrusion (frustum)
-        var frustum = square.Extrude(new ExtrusionOptions 
-        { 
-            Height = 100, 
-            TopScale = 0.5 
+        var frustum = square.Extrude(new ExtrusionOptions
+        {
+            Height = 100,
+            TopScale = 0.5
         });
         Console.WriteLine($"\nFrustum (50% top scale):");
         Console.WriteLine($"  Volume: {frustum.Volume:N2} cubic units");
@@ -497,5 +510,435 @@ class Program
         }
         scene.StopSimulation();
         Console.WriteLine();
+    }
+
+    static void DemoDronesTest()
+    {
+        Console.WriteLine("=== Drones Module Test ===\n");
+
+        // 1. Test Enums
+        Console.WriteLine("1. Testing Enums:");
+        Console.WriteLine($"   DroneType: {DroneType.Quadcopter}");
+        Console.WriteLine($"   DroneStatus: {DroneStatus.Ready}");
+        Console.WriteLine($"   MissionType: {Drones.Core.MissionType.Survey}");
+        Console.WriteLine("   ✓ Enums OK\n");
+
+        // 2. Test Specifications
+        Console.WriteLine("2. Testing Specifications:");
+        var specs = DroneSpecifications.DJIMavic3;
+        Console.WriteLine($"   Model: {specs.Model}");
+        Console.WriteLine($"   Max Speed: {specs.MaxSpeedMs} m/s");
+        Console.WriteLine($"   Flight Time: {specs.MaxFlightTimeMinutes} min");
+        Console.WriteLine("   ✓ Specifications OK\n");
+
+        // 3. Test Drone Creation
+        Console.WriteLine("3. Testing Drone:");
+        var drone = new Drone("test-drone-1", specs);
+        drone.Initialize(new Vector3D(0, 0, 0));
+        Console.WriteLine($"   ID: {drone.Id}");
+        Console.WriteLine($"   Status: {drone.State.Status}");
+        Console.WriteLine($"   Battery: {drone.State.BatteryPercent}%");
+
+        // Arm and check
+        var armed = drone.Arm();
+        Console.WriteLine($"   Arm result: {armed}, Status: {drone.State.Status}");
+        Console.WriteLine("   ✓ Drone OK\n");
+
+        // 4. Test Mission
+        Console.WriteLine("4. Testing Mission:");
+        var mission = new SurveyMission
+        {
+            Name = "Test Survey",
+            AreaVertices = new List<Vector3D>
+            {
+                new(0, 0, 0),
+                new(100, 0, 0),
+                new(100, 100, 0),
+                new(0, 100, 0)
+            },
+            Pattern = SurveyPattern.Lawnmower,
+            LineSpacing = 20,
+            Altitude = 50,
+            Speed = 10,
+            HomePosition = drone.HomePosition
+        };
+
+        var path = mission.GenerateFlightPath();
+        Console.WriteLine($"   Mission: {mission.Name}");
+        Console.WriteLine($"   Waypoints: {path.Waypoints.Count}");
+        Console.WriteLine($"   Duration: {mission.EstimatedDurationSec:F1} sec");
+        Console.WriteLine($"   Distance: {mission.EstimatedDistanceM:F1} m");
+        Console.WriteLine("   ✓ Mission OK\n");
+
+        // 5. Test Fleet Manager
+        Console.WriteLine("5. Testing Fleet Manager:");
+        var fleet = new DroneFleetManager();
+        fleet.AddDrone(drone);
+        fleet.RegisterMission(mission);
+
+        var stats = fleet.GetStatistics();
+        Console.WriteLine($"   Drones: {stats.TotalDrones}");
+        Console.WriteLine($"   Missions: {stats.TotalMissions}");
+        Console.WriteLine("   ✓ Fleet OK\n");
+
+        // 6. Test Telemetry
+        Console.WriteLine("6. Testing Telemetry:");
+        var recorder = new TelemetryRecorder();
+        recorder.RecordFromState(drone.Id, drone.State);
+        var latest = recorder.GetLatest(drone.Id);
+        Console.WriteLine($"   Recorded: {latest != null}");
+        Console.WriteLine($"   Position: {latest?.Position}");
+        Console.WriteLine("   ✓ Telemetry OK\n");
+
+        Console.WriteLine("=== All Tests Passed! ===");
+    }
+
+    private static async void DemoDronesFleetTest()
+    {
+        Console.WriteLine("╔══════════════════════════════════════════════════════════════╗");
+        Console.WriteLine("║          🤖 Test 10: AI Module - Anthropic Integration       ║");
+        Console.WriteLine("╚══════════════════════════════════════════════════════════════╝\n");
+
+        // בקשת API Key
+        Console.Write("🔑 הכנס Anthropic API Key (או Enter לדילוג): ");
+        var apiKey = Console.ReadLine()?.Trim();
+
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            Console.WriteLine("\n⚠️ ללא API Key - מציג דמו מקומי בלבד\n");
+            await RunLocalDemo();
+            return;
+        }
+
+        await RunFullAIDemo(apiKey);
+    }
+
+    private static async Task RunFullAIDemo(string apiKey)
+    {
+        // יצירת רחפן
+        Console.WriteLine("\n📦 יוצר רחפן...");
+        var drone = new Drone("AI-Drone-1", DroneSpecifications.DJIMavic3);
+        drone.Initialize(new Vector3D(0, 0, 0));
+        Console.WriteLine($"   ✓ רחפן {drone.Id} מוכן\n");
+
+        // יצירת מערכת טלמטריה
+        var telemetry = new TelemetryRecorder();
+        drone.StateChanged += (s, e) => telemetry.RecordFromState(e.DroneId, e.State);
+
+        // יצירת עוזר AI
+        Console.WriteLine("🤖 מאתחל עוזר AI...");
+        var assistant = new DroneAssistant(apiKey);
+        assistant.SetActiveDrone(drone);
+        assistant.SetTelemetry(telemetry);
+        Console.WriteLine("   ✓ עוזר AI מוכן\n");
+
+        // יצירת מתכנן משימות
+        var planner = new MissionPlanner(apiKey);
+
+        Console.WriteLine("═══════════════════════════════════════════════════════════════");
+        Console.WriteLine("                    🎮 מצב אינטראקטיבי");
+        Console.WriteLine("═══════════════════════════════════════════════════════════════");
+        Console.WriteLine("פקודות זמינות:");
+        Console.WriteLine("  chat <הודעה>     - שיחה עם העוזר");
+        Console.WriteLine("  cmd <פקודה>      - ביצוע פקודה (המרא/נחת/טוס...)");
+        Console.WriteLine("  plan <תיאור>     - תכנון משימה");
+        Console.WriteLine("  status           - הצג סטטוס");
+        Console.WriteLine("  simulate         - הרץ סימולציה");
+        Console.WriteLine("  demo             - הרץ דמו אוטומטי");
+        Console.WriteLine("  quit             - יציאה");
+        Console.WriteLine("═══════════════════════════════════════════════════════════════\n");
+
+        while (true)
+        {
+            Console.Write("\n🎯 פקודה> ");
+            var input = Console.ReadLine()?.Trim();
+
+            if (string.IsNullOrEmpty(input))
+                continue;
+
+            if (input.Equals("quit", StringComparison.OrdinalIgnoreCase) ||
+                input.Equals("exit", StringComparison.OrdinalIgnoreCase) ||
+                input.Equals("יציאה", StringComparison.OrdinalIgnoreCase))
+                break;
+
+            try
+            {
+                if (input.StartsWith("chat ", StringComparison.OrdinalIgnoreCase))
+                {
+                    await HandleChat(assistant, input[5..]);
+                }
+                else if (input.StartsWith("cmd ", StringComparison.OrdinalIgnoreCase))
+                {
+                    await HandleCommand(assistant, input[4..]);
+                }
+                else if (input.StartsWith("plan ", StringComparison.OrdinalIgnoreCase))
+                {
+                    await HandlePlan(planner, drone, input[5..]);
+                }
+                else if (input.Equals("status", StringComparison.OrdinalIgnoreCase) ||
+                         input.Equals("סטטוס", StringComparison.OrdinalIgnoreCase))
+                {
+                    ShowStatus(drone);
+                }
+                else if (input.Equals("simulate", StringComparison.OrdinalIgnoreCase) ||
+                         input.Equals("סימולציה", StringComparison.OrdinalIgnoreCase))
+                {
+                    await RunSimulation(drone);
+                }
+                else if (input.Equals("demo", StringComparison.OrdinalIgnoreCase))
+                {
+                    await RunAutomaticDemo(assistant, planner, drone);
+                }
+                else
+                {
+                    // נסה לפרש כפקודה
+                    await HandleCommand(assistant, input);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"\n❌ שגיאה: {ex.Message}");
+            }
+        }
+
+        Console.WriteLine("\n👋 להתראות!");
+    }
+
+    private static async Task HandleChat(DroneAssistant assistant, string message)
+    {
+        Console.WriteLine("\n💬 Claude חושב...");
+
+        await foreach (var chunk in assistant.StreamChatAsync(message))
+        {
+            Console.Write(chunk);
+        }
+        Console.WriteLine();
+    }
+
+    private static async Task HandleCommand(DroneAssistant assistant, string command)
+    {
+        Console.WriteLine("\n⚙️ מעבד פקודה...");
+        var result = await assistant.ProcessCommandAsync(command);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine($"\n✅ {result.Message}");
+        }
+        else
+        {
+            Console.WriteLine($"\n❌ {result.Message}");
+        }
+
+        if (!string.IsNullOrEmpty(result.AiResponse))
+        {
+            Console.WriteLine($"\n🤖 AI: {result.AiResponse}");
+        }
+    }
+
+    private static async Task HandlePlan(MissionPlanner planner, Drone drone, string description)
+    {
+        Console.WriteLine("\n📋 מתכנן משימה...");
+
+        var plan = await planner.PlanMissionAsync(
+            description,
+            drone.Specs,
+            drone.HomePosition,
+            drone.State.BatteryPercent);
+
+        if (plan.IsValid)
+        {
+            Console.WriteLine($"\n{plan}");
+
+            Console.Write("\n🚀 להפעיל את המשימה? (y/n): ");
+            if (Console.ReadLine()?.Trim().ToLower() == "y")
+            {
+                var mission = planner.GenerateMission(plan, drone.HomePosition);
+                if (mission != null)
+                {
+                    var path = mission.GenerateFlightPath();
+
+                    if (!drone.State.IsArmed)
+                        drone.Arm();
+
+                    drone.StartMission(mission.Id, path);
+                    Console.WriteLine($"\n✅ משימה הופעלה! Waypoints: {path.Waypoints.Count}");
+                }
+            }
+        }
+        else
+        {
+            Console.WriteLine($"\n❌ לא ניתן לתכנן: {plan.ErrorMessage}");
+        }
+    }
+
+    private static void ShowStatus(Drone drone)
+    {
+        var state = drone.State;
+        Console.WriteLine($"""
+            
+            ╔══════════════════════════════════════╗
+            ║         📊 סטטוס הרחפן               ║
+            ╠══════════════════════════════════════╣
+            ║ ID:        {drone.Id,-25} ║
+            ║ סטטוס:     {state.Status,-25} ║
+            ║ מצב טיסה:  {state.FlightMode,-25} ║
+            ╠══════════════════════════════════════╣
+            ║ 📍 מיקום                             ║
+            ║   X: {state.Position.X,8:F1}m                      ║
+            ║   Y: {state.Position.Y,8:F1}m                      ║
+            ║   Z: {state.Position.Z,8:F1}m                      ║
+            ║ גובה AGL: {state.AltitudeAGL,6:F1}m                ║
+            ╠══════════════════════════════════════╣
+            ║ 🔋 סוללה: {state.BatteryPercent,5:F1}%                   ║
+            ║ 🏠 מרחק מהבית: {state.DistanceFromHome,6:F1}m           ║
+            ║ 📏 מרחק שעבר: {state.DistanceTraveled,6:F1}m            ║
+            ║ ⏱️ זמן טיסה: {state.FlightTimeSec,6:F0}s               ║
+            ╚══════════════════════════════════════╝
+            """);
+    }
+
+    private static async Task RunSimulation(Drone drone)
+    {
+        if (drone.CurrentPath == null)
+        {
+            Console.WriteLine("\n⚠️ אין משימה פעילה. השתמש ב-plan או cmd להפעלת משימה.");
+            return;
+        }
+
+        Console.WriteLine("\n🎬 מריץ סימולציה (לחץ Enter לעצירה)...\n");
+
+        var cts = new CancellationTokenSource();
+        var keyTask = Task.Run(() => Console.ReadLine());
+
+        var simTask = Task.Run(async () =>
+        {
+            while (!cts.Token.IsCancellationRequested &&
+                   drone.State.Status == DroneStatus.Flying ||
+                   drone.State.Status == DroneStatus.TakingOff)
+            {
+                drone.Update(0.1);
+
+                Console.Write($"\r   📍 ({drone.State.Position.X:F1}, {drone.State.Position.Y:F1}, {drone.State.Position.Z:F1}) " +
+                             $"| 🔋 {drone.State.BatteryPercent:F1}% " +
+                             $"| ⏱️ {drone.State.FlightTimeSec:F0}s " +
+                             $"| 📏 {drone.State.DistanceTraveled:F0}m   ");
+
+                await Task.Delay(100);
+            }
+        });
+
+        await Task.WhenAny(keyTask, simTask);
+        cts.Cancel();
+
+        Console.WriteLine($"\n\n✅ סימולציה הסתיימה. סטטוס: {drone.State.Status}");
+    }
+
+    private static async Task RunAutomaticDemo(DroneAssistant assistant, MissionPlanner planner, Drone drone)
+    {
+        Console.WriteLine("\n🎬 מריץ דמו אוטומטי...\n");
+
+        // 1. שיחה
+        Console.WriteLine("═══ 1. שיחה עם העוזר ═══");
+        Console.WriteLine("👤 User: מה המצב של הרחפן?");
+        Console.Write("🤖 AI: ");
+        await foreach (var chunk in assistant.StreamChatAsync("מה המצב של הרחפן?"))
+        {
+            Console.Write(chunk);
+            await Task.Delay(10);
+        }
+        Console.WriteLine("\n");
+
+        // 2. פקודה
+        Console.WriteLine("═══ 2. פקודה טבעית ═══");
+        Console.WriteLine("👤 User: תמריא לגובה 30 מטר");
+        var result = await assistant.ProcessCommandAsync("תמריא לגובה 30 מטר");
+        Console.WriteLine($"🤖 AI: {result.Message}\n");
+
+        // 3. סימולציה קצרה
+        Console.WriteLine("═══ 3. סימולציה ═══");
+        for (int i = 0; i < 30; i++)
+        {
+            drone.Update(0.2);
+            Console.Write($"\r   גובה: {drone.State.AltitudeAGL:F1}m | סטטוס: {drone.State.Status}   ");
+            await Task.Delay(50);
+        }
+        Console.WriteLine("\n");
+
+        // 4. תכנון משימה
+        Console.WriteLine("═══ 4. תכנון משימה ═══");
+        Console.WriteLine("👤 User: תכנן משימת סריקה של שדה 150x100 מטר");
+        var plan = await planner.PlanMissionAsync(
+            "סריקה של שדה חקלאי בגודל 150x100 מטר לצילום אווירי",
+            drone.Specs,
+            drone.HomePosition,
+            drone.State.BatteryPercent);
+        Console.WriteLine($"\n{plan}\n");
+
+        // 5. שאלה נוספת
+        Console.WriteLine("═══ 5. שאלה על הטיסה ═══");
+        Console.WriteLine("👤 User: כמה סוללה נשארה ומה הזמן המשוער לסיום?");
+        Console.Write("🤖 AI: ");
+        await foreach (var chunk in assistant.StreamChatAsync("כמה סוללה נשארה ומה הזמן המשוער לסיום המשימה?"))
+        {
+            Console.Write(chunk);
+            await Task.Delay(10);
+        }
+        Console.WriteLine("\n");
+
+        Console.WriteLine("✅ דמו הסתיים!");
+    }
+
+    private static async Task RunLocalDemo()
+    {
+        Console.WriteLine("📦 דמו מקומי - ללא AI\n");
+
+        // יצירת רחפן
+        var drone = new Drone("Demo-Drone", DroneSpecifications.DJIMavic3);
+        drone.Initialize(new Vector3D(0, 0, 0));
+
+        // הדגמת משימות
+        Console.WriteLine("1️⃣ יצירת משימת סריקה...");
+        var survey = new SurveyMission
+        {
+            Name = "Demo Survey",
+            AreaVertices = new List<Vector3D>
+            {
+                new(0, 0, 0), new(100, 0, 0),
+                new(100, 80, 0), new(0, 80, 0)
+            },
+            Pattern = SurveyPattern.Lawnmower,
+            Altitude = 50,
+            HomePosition = drone.HomePosition
+        };
+        var path = survey.GenerateFlightPath();
+        Console.WriteLine($"   ✓ {path.Waypoints.Count} waypoints, {survey.EstimatedDurationSec / 60:F1} min\n");
+
+        Console.WriteLine("2️⃣ משימת הקפה...");
+        var orbit = new OrbitMission
+        {
+            Name = "Demo Orbit",
+            OrbitCenter = new Vector3D(50, 50, 0),
+            OrbitRadius = 30,
+            Orbits = 2,
+            Altitude = 40,
+            HomePosition = drone.HomePosition
+        };
+        var orbitPath = orbit.GenerateFlightPath();
+        Console.WriteLine($"   ✓ {orbitPath.Waypoints.Count} waypoints\n");
+
+        Console.WriteLine("3️⃣ סימולציה...");
+        drone.Arm();
+        drone.StartMission(survey.Id, path);
+
+        for (int i = 0; i < 50; i++)
+        {
+            drone.Update(0.5);
+            var progress = (double)drone.State.CurrentWaypointIndex / drone.State.TotalWaypoints * 100;
+            Console.Write($"\r   Progress: {progress:F0}% | Battery: {drone.State.BatteryPercent:F1}%   ");
+            await Task.Delay(50);
+        }
+
+        Console.WriteLine("\n\n✅ דמו מקומי הסתיים!");
+        Console.WriteLine("\n💡 להפעלת AI, הרץ שוב עם API Key");
     }
 }

@@ -186,6 +186,56 @@ public class FlightPath : IAnimationPath
         return velocity.Magnitude > 1e-10 ? velocity.Normalized : Vector3D.UnitX;
     }
 
+    /// <summary>
+    /// Gets the index of the current waypoint at a given time.
+    /// </summary>
+    public int GetCurrentWaypointIndex(double time)
+    {
+        if (_waypoints.Count == 0)
+            return 0;
+
+        // Handle looping
+        if (_isLooping && time > TotalDuration)
+        {
+            time = time % TotalDuration;
+        }
+
+        // Find the waypoint we've passed
+        for (int i = _waypoints.Count - 1; i >= 0; i--)
+        {
+            if (time >= _waypoints[i].Time)
+                return i;
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// Gets the next waypoint from current time.
+    /// </summary>
+    public Waypoint? GetNextWaypoint(double time)
+    {
+        var currentIndex = GetCurrentWaypointIndex(time);
+        if (currentIndex < _waypoints.Count - 1)
+            return _waypoints[currentIndex + 1];
+
+        return _isLooping ? _waypoints[0] : null;
+    }
+
+    /// <summary>
+    /// Gets progress through the path (0.0 to 1.0).
+    /// </summary>
+    public double GetProgress(double time)
+    {
+        if (TotalDuration <= 0)
+            return 0;
+
+        if (_isLooping)
+            return (time % TotalDuration) / TotalDuration;
+
+        return Math.Clamp(time / TotalDuration, 0, 1);
+    }
+
     public double GetSpeedAtTime(double time) => GetVelocityAtTime(time).Magnitude;
 
     public double GetAltitudeAtTime(double time) => GetPositionAtTime(time).Z;
