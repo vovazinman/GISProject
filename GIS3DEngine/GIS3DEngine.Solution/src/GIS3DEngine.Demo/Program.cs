@@ -19,7 +19,7 @@ namespace GIS3DEngine.Demo;
 /// </summary>
 class Program
 {
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
         Console.WriteLine("╔═══════════════════════════════════════════════════════════╗");
         Console.WriteLine("║   GIS 3D Geometry & Flight Visualization Engine Demo      ║");
@@ -55,7 +55,7 @@ class Program
         DemoDronesTest();
 
         //Demo 10: Drones Fleet Management Test
-        DemoDronesFleetTest();
+        await DemoDronesFleetTest();
 
         Console.WriteLine("\n✅ All demos completed successfully!");
     }
@@ -593,7 +593,7 @@ class Program
         Console.WriteLine("=== All Tests Passed! ===");
     }
 
-    private static async void DemoDronesFleetTest()
+    private static async Task DemoDronesFleetTest()
     {
         Console.WriteLine("╔══════════════════════════════════════════════════════════════╗");
         Console.WriteLine("║          Test 10: AI Module - Anthropic Integration          ║");
@@ -703,15 +703,24 @@ class Program
     {
         Console.WriteLine("\n[AI] Thinking...");
 
-        // Use ChatAsync instead of StreamChatAsync
-        var response = await assistant.ChatAsync(message);
-
-        Console.WriteLine($"\n[AI] {response.Text}");
-
-        // If AI detected a command
-        if (response.HasCommand && response.Command != null)
+        try
         {
-            Console.WriteLine($"\n[*] Detected command: {response.Command.Command}");
+            var response = await assistant.ChatAsync(message);
+
+            // Use simple method
+           // var response = await assistant.SimpleChatAsync(message);
+
+            Console.WriteLine($"\n[AI] {response.Text}");
+            //Console.WriteLine($"\n[AI] {response}");
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine($"\n[HTTP ERROR] {ex.StatusCode}: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"\n[ERROR] {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[STACK] {ex.StackTrace}");
         }
     }
 

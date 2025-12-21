@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Json;
+﻿using System;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -10,7 +11,6 @@ namespace GIS3DEngine.Drones.AI;
 public class AnthropicClient
 {
     private readonly HttpClient _httpClient;
-    private readonly string _apiKey;
     private readonly string _model;
 
     private const string ApiUrl = "https://api.anthropic.com/v1/messages";
@@ -18,11 +18,11 @@ public class AnthropicClient
 
     public AnthropicClient(string apiKey, string model = DefaultModel)
     {
-        _apiKey = apiKey;
         _model = model;
         _httpClient = new HttpClient();
-        _httpClient.DefaultRequestHeaders.Add("x-api-key", _apiKey);
+        _httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
         _httpClient.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+        _httpClient.Timeout = TimeSpan.FromSeconds(60); // Timeout
     }
 
     /// <summary>
@@ -41,11 +41,7 @@ public class AnthropicClient
             }
         };
 
-        var response = await _httpClient.PostAsJsonAsync(ApiUrl, request);
-        response.EnsureSuccessStatusCode();
-
-        var result = await response.Content.ReadFromJsonAsync<AnthropicResponse>();
-        return result?.Content?.FirstOrDefault()?.Text ?? string.Empty;
+        return await SendRequestAsync(request);
     }
 
     /// <summary>
@@ -63,11 +59,104 @@ public class AnthropicClient
             Messages = messages
         };
 
-        var response = await _httpClient.PostAsJsonAsync(ApiUrl, request);
-        response.EnsureSuccessStatusCode();
+        return await SendRequestAsync(request);
+    }
 
-        var result = await response.Content.ReadFromJsonAsync<AnthropicResponse>();
-        return result?.Content?.FirstOrDefault()?.Text ?? string.Empty;
+    /// <summary>
+    /// Simple test method - works exactly like the test project.
+    /// </summary>
+    public async Task<string> SimpleTestAsync(string message)
+    {
+        // Use anonymous object - exactly like the working test!
+        var requestBody = new
+        {
+            model = _model,
+            max_tokens = 1024,
+            messages = new[]
+            {
+            new { role = "user", content = message }
+        }
+        };
+
+        try
+        {
+
+            var response = await _httpClient.PostAsJsonAsync(ApiUrl, requestBody);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                return $"[ERROR] {response.StatusCode}: {error}";
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+
+            // Simple JSON parsing
+            var startIndex = json.IndexOf("\"text\":\"") + 8;
+            var endIndex = json.IndexOf("\"", startIndex);
+
+            if (startIndex > 8 && endIndex > startIndex)
+            {
+                return json.Substring(startIndex, endIndex - startIndex);
+            }
+
+            return json; // Return raw if parsing fails
+        }
+        catch (Exception ex)
+        {
+            return $"[EXCEPTION] {ex.GetType().Name}: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Core request method with error handling.
+    /// </summary>
+    private async Task<string> SendRequestAsync(AnthropicRequest request)
+    {
+        try
+        {
+            Console.WriteLine($"[DEBUG] Sending request to: {ApiUrl}");
+            Console.WriteLine($"[DEBUG] Model: {request.Model}");
+            Console.WriteLine($"[DEBUG] Messages: {request.Messages.Count}");
+
+            var response = await _httpClient.PostAsJsonAsync(ApiUrl, request);
+
+            Console.WriteLine($"[DEBUG] Status: {response.StatusCode}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"[DEBUG] Error response: {errorContent}");
+                throw new HttpRequestException($"API Error {response.StatusCode}: {errorContent}");
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<AnthropicResponse>();
+            var text = result?.Content?.FirstOrDefault()?.Text ?? string.Empty;
+
+            Console.WriteLine($"[DEBUG] Response length: {text.Length} chars");
+
+            return text;
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine($"[ERROR] HTTP Error: {ex.Message}");
+            throw;
+        }
+        catch (TaskCanceledException ex)
+        {
+            Console.WriteLine($"[ERROR] Timeout: {ex.Message}");
+            throw new Exception("Request timed out. Check your internet connection.");
+        }
+        catch (JsonException ex)
+        {
+            Console.WriteLine($"[ERROR] JSON Parse Error: {ex.Message}");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] {ex.GetType().Name}: {ex.Message}");
+            throw;
+        }
     }
 
     /// <summary>
@@ -89,13 +178,22 @@ public class AnthropicClient
             }
         };
 
-        var httpRequest = new HttpRequestMessage(HttpMethod.Post, ApiUrl)
+        HttpResponseMessage response;
+        try
         {
-            Content = JsonContent.Create(request)
-        };
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, ApiUrl)
+            {
+                Content = JsonContent.Create(request)
+            };
 
-        var response = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
-        response.EnsureSuccessStatusCode();
+            response = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+            response.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Stream request failed: {ex.Message}");
+            yield break;
+        }
 
         await using var stream = await response.Content.ReadAsStreamAsync();
         using var reader = new StreamReader(stream);
@@ -110,7 +208,13 @@ public class AnthropicClient
             if (data == "[DONE]")
                 break;
 
-            var chunk = JsonSerializer.Deserialize<StreamChunk>(data);
+            StreamChunk? chunk = null;
+            try
+            {
+                chunk = JsonSerializer.Deserialize<StreamChunk>(data);
+            }
+            catch { }
+
             if (chunk?.Delta?.Text != null)
                 yield return chunk.Delta.Text;
         }
@@ -155,6 +259,9 @@ public class AnthropicResponse
 
     [JsonPropertyName("stop_reason")]
     public string? StopReason { get; set; }
+
+    [JsonPropertyName("error")]
+    public ApiError? Error { get; set; }
 }
 
 public class ContentBlock
@@ -164,6 +271,15 @@ public class ContentBlock
 
     [JsonPropertyName("text")]
     public string Text { get; set; } = string.Empty;
+}
+
+public class ApiError
+{
+    [JsonPropertyName("type")]
+    public string? Type { get; set; }
+
+    [JsonPropertyName("message")]
+    public string? Message { get; set; }
 }
 
 public class StreamChunk

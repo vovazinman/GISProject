@@ -52,6 +52,20 @@ public class DroneAssistant
     #region Chat
 
     /// <summary>
+    /// Simple chat - for testing.
+    /// </summary>
+    public async Task<string> SimpleChatAsync(string message)
+    {
+        var context = _activeDrone != null
+            ? $"Drone {_activeDrone.Id} is {_activeDrone.State.Status} with {_activeDrone.State.BatteryPercent}% battery. "
+            : "";
+
+        var fullMessage = context + "User says: " + message;
+
+        return await _client.SimpleTestAsync(fullMessage);
+    }
+
+    /// <summary>
     /// Chat with the assistant.
     /// </summary>
     public async Task<AssistantResponse> ChatAsync(string userMessage)
