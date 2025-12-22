@@ -1,0 +1,6 @@
+@GIS3DEngine.WebApi_HostAddress = http://localhost:5120
+
+GET {{GIS3DEngine.WebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

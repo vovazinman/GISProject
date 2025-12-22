@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\GIS3DEngine.Core\GIS3DEngine.Core.csproj" />
-    <ProjectReference Include="..\src\GIS3DEngine.Services\GIS3DEngine.Services.csproj" />
   </ItemGroup>
 
   <ItemGroup>

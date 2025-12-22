@@ -11,6 +11,7 @@ namespace GIS3DEngine.Drones.Core;
 public class DroneState
 {
     #region Position & Movement
+    public string DroneId { get; set; } = string.Empty;
 
     /// <summary>Current position (local coordinates).</summary>
     public Vector3D Position { get; set; } = Vector3D.Zero;

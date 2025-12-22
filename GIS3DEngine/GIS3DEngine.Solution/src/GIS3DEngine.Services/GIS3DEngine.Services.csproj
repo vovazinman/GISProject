@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\GIS3DEngine.Drones\GIS3DEngine.Drones.csproj" />
     <ProjectReference Include="..\GIS3DEngine.Core\GIS3DEngine.Core.csproj" />
   </ItemGroup>
 
