@@ -6,4 +6,5 @@ public class ChatRequestDto
     /// User input message (natural language)
     /// </summary>
     public string Message { get; set; } = string.Empty;
+    public string? DroneId { get; set; }
 }

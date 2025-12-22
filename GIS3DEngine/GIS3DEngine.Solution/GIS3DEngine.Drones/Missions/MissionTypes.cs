@@ -421,6 +421,7 @@ public class SurveyMission : DroneMission
 public class PatrolMission : DroneMission
 {
     public override MissionType Type => MissionType.Patrol;
+    public List<Vector3D> PatrolPoints { get; set; } = new();
 
     /// <summary>Patrol path waypoints.</summary>
     public List<Vector3D> PatrolPath { get; set; } = new();
@@ -449,6 +450,12 @@ public class PatrolMission : DroneMission
         waypoints.Add(new Waypoint(HomePosition, time));
         time += 5;
 
+        // Fly to first patrol point
+        var firstPoint = new Vector3D(PatrolPath[0].X, PatrolPath[0].Y, HomePosition.Z + Altitude);
+        var distanceToFirst = Vector3D.Distance(HomePosition, firstPoint); // Updated from PatrolPoints[0] to firstPoint
+        time += distanceToFirst / Speed;
+        waypoints.Add(new Waypoint(firstPoint, time, Speed));
+
         var loops = Loops == 0 ? 1 : Loops; // Generate at least one loop
         for (int loop = 0; loop < loops; loop++)
         {
@@ -467,7 +474,7 @@ public class PatrolMission : DroneMission
             // Return to first patrol point if looping
             if (loop < loops - 1 || Loops == 0)
             {
-                var firstPoint = new Vector3D(PatrolPath[0].X, PatrolPath[0].Y, HomePosition.Z + Altitude);
+                firstPoint = new Vector3D(PatrolPath[0].X, PatrolPath[0].Y, HomePosition.Z + Altitude);
                 var distance = Vector3D.Distance(prevPoint, firstPoint);
                 time += distance / Speed;
                 waypoints.Add(new Waypoint(firstPoint, time, Speed));
@@ -542,6 +549,9 @@ public class DeliveryMission : DroneMission
 
     /// <summary>Return to home after delivery.</summary>
     public bool ReturnAfterDelivery { get; set; } = true;
+
+    public double HoverTimeAtPickup { get; set; } = 10;    // seconds
+    public double HoverTimeAtDelivery { get; set; } = 10;  // seconds
 
     public override FlightPath GenerateFlightPath()
     {

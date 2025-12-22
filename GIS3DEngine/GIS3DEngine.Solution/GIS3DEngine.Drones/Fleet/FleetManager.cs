@@ -305,6 +305,25 @@ public class DroneFleetManager
         }
     }
 
+    /// <summary>
+    /// Remove mission from fleet
+    /// </summary>
+    public bool RemoveMission(string missionId)
+    {
+        // Check if any drone is running this mission
+        foreach (var drone in _drones.Values)
+        {
+            if (drone.CurrentMissionId == missionId)
+            {
+                return false;
+            }
+        }
+
+        var removed = _missions.TryRemove(missionId, out _);
+
+        return removed;
+    }
+
     #endregion
 
     #region Fleet Commands

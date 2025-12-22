@@ -518,6 +518,28 @@ public class Drone
         }
     }
 
+    /// <summary>
+    /// Cancel current mission and hover in place
+    /// </summary>
+    public void CancelMission()
+    {
+        lock (_lock)
+        {
+            if (string.IsNullOrEmpty(CurrentMissionId))
+                return;
+
+            CurrentMissionId = null;
+            _currentPath = null;
+            _missionTime = 0; 
+
+            State.CurrentWaypointIndex = 0;
+            State.TotalWaypoints = 0;
+            State.FlightMode = FlightMode.Loiter;
+            _isSimulating = false;  // 👈 הוסף - עוצר את הסימולציה
+
+            OnStateChanged("Mission cancelled - hovering");
+        }
+    }
     #endregion
 
     #region Simulation

@@ -1,6 +1,6 @@
 ﻿using GIS3DEngine.Drones.Core;
 using GIS3DEngine.WebApi.Dtos;
-using GIS3DEngine.WebApi.Hub;
+using GIS3DEngine.WebApi.Hubs;
 using Microsoft.AspNetCore.SignalR;
 
 namespace GIS3DEngine.WebApi.Services;
