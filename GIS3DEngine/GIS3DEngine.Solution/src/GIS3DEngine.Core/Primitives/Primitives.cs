@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace GIS3DEngine.Core.Primitives;
 
 /// <summary>
@@ -16,15 +18,23 @@ public readonly struct Vector3D : IEquatable<Vector3D>
         Z = z;
     }
 
+    [JsonIgnore]
     public static Vector3D Zero => new(0, 0, 0);
+    [JsonIgnore]
     public static Vector3D One => new(1, 1, 1);
+    [JsonIgnore]
     public static Vector3D UnitX => new(1, 0, 0);
+    [JsonIgnore]
     public static Vector3D UnitY => new(0, 1, 0);
+    [JsonIgnore]
     public static Vector3D UnitZ => new(0, 0, 1);
 
+    [JsonIgnore]
     public double Magnitude => Math.Sqrt(X * X + Y * Y + Z * Z);
+    [JsonIgnore]
     public double MagnitudeSquared => X * X + Y * Y + Z * Z;
 
+    [JsonIgnore]
     public Vector3D Normalized
     {
         get
@@ -132,7 +142,9 @@ public readonly struct GeoCoordinate : IEquatable<GeoCoordinate>
         Altitude = altitude;
     }
 
+    [JsonIgnore]
     public double LatitudeRadians => Latitude * Math.PI / 180.0;
+    [JsonIgnore]
     public double LongitudeRadians => Longitude * Math.PI / 180.0;
 
     public bool Equals(GeoCoordinate other) =>
@@ -210,9 +222,11 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
             Math.Max(min.Z, max.Z)
         );
     }
-
+    [JsonIgnore]
     public Vector3D Size => Max - Min;
+    [JsonIgnore]
     public Vector3D Center => (Min + Max) * 0.5;
+    [JsonIgnore]
     public double Volume => (Max.X - Min.X) * (Max.Y - Min.Y) * (Max.Z - Min.Z);
 
     public static BoundingBox FromPoints(IEnumerable<Vector3D> points)
@@ -314,8 +328,10 @@ public readonly struct Triangle : IEquatable<Triangle>
         V2 = v2;
     }
 
+    [JsonIgnore]
     public Vector3D Normal => Vector3D.Cross(V1 - V0, V2 - V0).Normalized;
 
+    [JsonIgnore]
     public double Area
     {
         get
@@ -325,10 +341,14 @@ public readonly struct Triangle : IEquatable<Triangle>
         }
     }
 
+    [JsonIgnore]
     public Vector3D Centroid => (V0 + V1 + V2) / 3.0;
 
+    [JsonIgnore]
     public Vector3D Edge0 => V1 - V0;
+    [JsonIgnore]
     public Vector3D Edge1 => V2 - V1;
+    [JsonIgnore]
     public Vector3D Edge2 => V0 - V2;
 
     public bool Contains(Vector3D point)

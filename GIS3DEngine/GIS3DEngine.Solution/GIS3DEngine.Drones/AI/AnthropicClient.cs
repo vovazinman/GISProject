@@ -14,6 +14,7 @@ public class AnthropicClient
     private readonly string _model;
 
     private const string ApiUrl = "https://api.anthropic.com/v1/messages";
+    //private const string DefaultModel = "claude-sonnet-4-20250514";
     private const string DefaultModel = "claude-sonnet-4-20250514";
 
     public AnthropicClient(string apiKey, string model = DefaultModel)

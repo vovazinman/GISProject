@@ -12,4 +12,8 @@
     <ProjectReference Include="..\src\GIS3DEngine.Services\GIS3DEngine.Services.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
+  </ItemGroup>
+
 </Project>
