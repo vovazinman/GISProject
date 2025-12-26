@@ -1,8 +1,9 @@
 /**
- * DroneMap - מפת Leaflet עם מיקום הרחפן
+ * DroneMap - Leaflet map with drone position
+ * Supports current location detection
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   MapContainer, 
   TileLayer, 
@@ -40,6 +41,13 @@ const waypointIcon = L.divIcon({
   iconAnchor: [10, 10]
 });
 
+const currentLocationIcon = L.divIcon({
+  html: '<div class="current-location-marker">📍</div>',
+  className: 'current-location-icon-wrapper',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12]
+});
+
 // ========== Map Updater ==========
 
 interface MapUpdaterProps {
@@ -50,7 +58,7 @@ interface MapUpdaterProps {
 const MapUpdater: React.FC<MapUpdaterProps> = ({ center, follow }) => {
   const map = useMap();
   
-  React.useEffect(() => {
+  useEffect(() => {
     if (follow && center) {
       map.setView(center, map.getZoom());
     }
@@ -71,40 +79,94 @@ interface DroneMapProps {
 export const DroneMap: React.FC<DroneMapProps> = ({ 
   drone, 
   flightPath, 
-  homePosition = { x: 0, y: 0, z: 0 },
+  homePosition,
   followDrone = true 
 }) => {
+  // Current location state
+  const [currentLocation, setCurrentLocation] = useState<[number, number] | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
+
+  // Default location (Tel Aviv) if geolocation unavailable
+  const defaultLocation: [number, number] = [32.0853, 34.7818];
+
+  // Get current location on mount
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation not supported');
+      setCurrentLocation(defaultLocation);
+      setIsLoadingLocation(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const loc: [number, number] = [
+          position.coords.latitude, 
+          position.coords.longitude
+        ];
+        setCurrentLocation(loc);
+        setIsLoadingLocation(false);
+        console.log('📍 Current location:', loc);
+      },
+      (error) => {
+        console.warn('⚠️ Geolocation error:', error.message);
+        setLocationError(error.message);
+        setCurrentLocation(defaultLocation);
+        setIsLoadingLocation(false);
+      },
+      { 
+        enableHighAccuracy: true, 
+        timeout: 10000,
+        maximumAge: 60000 
+      }
+    );
+  }, []);
+
+  // Base location for coordinate conversion
+  const baseLocation = currentLocation || defaultLocation;
+
   /**
-   * המרת קואורדינטות מקומיות ל-LatLng
-   * Base: Tel Aviv (32.0853, 34.7818)
+   * Convert local coordinates to LatLng
    */
   const toLatLng = (pos: Vector3D | undefined): [number, number] => {
-    if (!pos) return [32.0853, 34.7818];
+    if (!pos) return baseLocation;
     
-    const baseLat = 32.0853;
-    const baseLng = 34.7818;
-    const metersPerDegree = 111320;
+    const metersPerDegreeLat = 111320;
+    const metersPerDegreeLng = 111320 * Math.cos(baseLocation[0] * Math.PI / 180);
     
     return [
-      baseLat + (pos.y / metersPerDegree),
-      baseLng + (pos.x / metersPerDegree)
+      baseLocation[0] + (pos.y / metersPerDegreeLat),
+      baseLocation[1] + (pos.x / metersPerDegreeLng)
     ];
   };
 
   const dronePosition = drone?.position ? toLatLng(drone.position) : null;
-  const homeLatLng = toLatLng(homePosition);
+  const homeLatLng = homePosition ? toLatLng(homePosition) : baseLocation;
   const isFlying = ['Flying', 'Hovering', 'TakingOff'].includes(drone?.status as string);
 
-  // מסלול טיסה
+  // Flight path positions
   const pathPositions: [number, number][] = flightPath?.waypoints?.map(wp => 
     toLatLng(wp.position)
   ) || [];
 
+  // Loading state
+  if (isLoadingLocation) {
+    return (
+      <div className="drone-map">
+        <div className="map-loading">
+          <div className="loading-spinner">📍</div>
+          <p>Getting your location...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="drone-map">
       <MapContainer
-        center={homeLatLng}
-        zoom={16}
+        center={baseLocation}
+        zoom={17}
         style={{ height: '100%', width: '100%' }}
       >
         <TileLayer
@@ -116,7 +178,17 @@ export const DroneMap: React.FC<DroneMapProps> = ({
           <MapUpdater center={dronePosition} follow={followDrone} />
         )}
 
-        {/* Home */}
+        {/* Current Location Marker */}
+        {currentLocation && (
+          <Marker position={currentLocation} icon={currentLocationIcon}>
+            <Popup>
+              <strong>📍 Your Location</strong>
+              {locationError && <p style={{color: 'orange'}}>Using default location</p>}
+            </Popup>
+          </Marker>
+        )}
+
+        {/* Home Position */}
         <Marker position={homeLatLng} icon={homeIcon}>
           <Popup><strong>🏠 Home Position</strong></Popup>
         </Marker>
@@ -139,7 +211,7 @@ export const DroneMap: React.FC<DroneMapProps> = ({
           </>
         )}
 
-        {/* Drone */}
+        {/* Drone Marker */}
         {dronePosition && drone && (
           <>
             <Marker position={dronePosition} icon={createDroneIcon(isFlying)}>
@@ -147,6 +219,7 @@ export const DroneMap: React.FC<DroneMapProps> = ({
                 <strong>🚁 {drone.droneId}</strong><br />
                 Status: {drone.status}<br />
                 Altitude: {drone.altitudeAGL?.toFixed(1)}m<br />
+                Speed: {drone.groundSpeed?.toFixed(1)}m/s<br />
                 Battery: {drone.batteryPercent?.toFixed(0)}%
               </Popup>
             </Marker>
@@ -163,7 +236,7 @@ export const DroneMap: React.FC<DroneMapProps> = ({
         )}
       </MapContainer>
 
-      {/* Overlay */}
+      {/* Info Overlay */}
       <div className="map-overlay">
         <div className="map-info">
           {drone && (
@@ -174,6 +247,13 @@ export const DroneMap: React.FC<DroneMapProps> = ({
           )}
         </div>
       </div>
+
+      {/* Location Error Warning */}
+      {locationError && (
+        <div className="location-warning">
+          ⚠️ Using default location (Tel Aviv)
+        </div>
+      )}
     </div>
   );
 };

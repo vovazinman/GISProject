@@ -34,7 +34,7 @@ public class DroneSpecifications
     #region Performance
 
     /// <summary>Maximum speed in m/s.</summary>
-    public double MaxSpeedMs { get; set; } = 20.0;
+    public double MaxSpeedMs { get; set; } = 90.0;
 
     /// <summary>Maximum climb rate in m/s.</summary>
     public double MaxClimbRateMs { get; set; } = 5.0;

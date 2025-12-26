@@ -257,6 +257,32 @@ public class DroneController : ControllerBase
     }
 
     /// <summary>
+    /// Reset drone from emergency state.
+    /// POST /api/drone/{id}/reset
+    /// </summary>
+    [HttpPost("{id}/reset")]
+    public async Task<ActionResult<CommandResponse>> ResetEmergency(string id)
+    {
+        var drone = _fleet.GetDrone(id);
+        if (drone == null)
+            return NotFound(new ErrorResponse { Error = "Drone not found", StatusCode = 404 });
+
+        var success = drone.ResetEmergency();
+
+        if (success)
+        {
+            await BroadcastDroneState(drone);
+        }
+
+        return Ok(new CommandResponse
+        {
+            Success = success,
+            Message = success ? "Emergency reset - drone ready" : "Drone is not in emergency state",
+            NewState = DroneStateDto.From(drone)
+        });
+    }
+
+    /// <summary>
     /// Get flight path
     /// GET /api/drone/{id}/path
     /// </summary>

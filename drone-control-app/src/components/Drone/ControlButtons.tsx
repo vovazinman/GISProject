@@ -1,5 +1,6 @@
 /**
- * ControlButtons - כפתורי שליטה ידניים
+ * ControlButtons - Manual drone control buttons
+ * Includes Emergency and Reset functionality
  */
 
 import React, { useState } from 'react';
@@ -9,9 +10,10 @@ import {
   ArrowDown, 
   Home, 
   AlertOctagon,
+  RefreshCw,
   Loader2 
 } from 'lucide-react';
-import { useDroneApi } from '../../hooks';
+import { droneApi } from '../../services/api';
 import type { DroneStatus } from '../../types';
 
 interface ControlButtonsProps {
@@ -26,47 +28,66 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
   onAction 
 }) => {
   const [altitude, setAltitude] = useState(30);
-  const { loading, arm, disarm, takeoff, land, rtl, emergency } = useDroneApi();
+  const [loading, setLoading] = useState<string | null>(null);
 
   const handleAction = async (action: string): Promise<void> => {
-    if (!droneId) return;
+    if (!droneId || loading) return;
 
-    let result;
-    switch (action) {
-      case 'arm':
-        result = await arm(droneId);
-        break;
-      case 'disarm':
-        result = await disarm(droneId);
-        break;
-      case 'takeoff':
-        result = await takeoff(droneId, altitude);
-        break;
-      case 'land':
-        result = await land(droneId);
-        break;
-      case 'rtl':
-        result = await rtl(droneId);
-        break;
-      case 'emergency':
-        result = await emergency(droneId);
-        break;
-    }
+    setLoading(action);
+    
+    try {
+      let result;
+      switch (action) {
+        case 'arm':
+          result = await droneApi.arm(droneId);
+          break;
+        case 'disarm':
+          result = await droneApi.disarm(droneId);
+          break;
+        case 'takeoff':
+          result = await droneApi.takeoff(droneId, altitude);
+          break;
+        case 'land':
+          result = await droneApi.land(droneId);
+          break;
+        case 'rtl':
+          result = await droneApi.rtl(droneId);
+          break;
+        case 'emergency':
+          result = await droneApi.emergency(droneId);
+          break;
+        case 'reset':
+          result = await droneApi.reset(droneId);
+          break;
+      }
 
-    if (result && onAction) {
-      onAction(action, result);
+      if (result && onAction) {
+        onAction(action, result);
+      }
+    } catch (error) {
+      console.error(`Action ${action} failed:`, error);
+    } finally {
+      setLoading(null);
     }
   };
 
-  // מצב כפתורים
+  // Button states
   const isFlying = ['Flying', 'Hovering', 'TakingOff'].includes(droneStatus as string);
   const isArmed = droneStatus === 'Armed' || isFlying;
-  const canTakeoff = isArmed && !isFlying;
+  const isEmergency = droneStatus === 'Emergency';
+  const canTakeoff = isArmed && !isFlying && !isEmergency;
   const canLand = isFlying;
 
   return (
     <div className="control-buttons">
       <h3>Manual Controls</h3>
+
+      {/* Emergency State Warning */}
+      {isEmergency && (
+        <div className="emergency-warning">
+          ⚠️ EMERGENCY MODE - Press Reset to recover
+        </div>
+      )}
 
       {/* Altitude Slider */}
       <div className="altitude-control">
@@ -77,15 +98,17 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
           max="100"
           value={altitude}
           onChange={(e) => setAltitude(Number(e.target.value))}
+          disabled={isEmergency}
         />
       </div>
 
-      {/* Buttons */}
+      {/* Control Buttons */}
       <div className="button-grid">
+        {/* Arm/Disarm */}
         <button
           className={`ctrl-btn ${isArmed ? 'armed' : ''}`}
           onClick={() => handleAction(isArmed ? 'disarm' : 'arm')}
-          disabled={!!loading || isFlying}
+          disabled={!!loading || isFlying || isEmergency}
         >
           {(loading === 'arm' || loading === 'disarm') ? (
             <Loader2 size={18} className="spin" />
@@ -95,6 +118,7 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
           {isArmed ? 'Disarm' : 'Arm'}
         </button>
 
+        {/* Takeoff */}
         <button
           className="ctrl-btn takeoff"
           onClick={() => handleAction('takeoff')}
@@ -104,6 +128,7 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
           Takeoff
         </button>
 
+        {/* Land */}
         <button
           className="ctrl-btn land"
           onClick={() => handleAction('land')}
@@ -113,6 +138,7 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
           Land
         </button>
 
+        {/* Return Home */}
         <button
           className="ctrl-btn rtl"
           onClick={() => handleAction('rtl')}
@@ -122,14 +148,29 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
           Return Home
         </button>
 
-        <button
-          className="ctrl-btn emergency"
-          onClick={() => handleAction('emergency')}
-          disabled={!!loading}
-        >
-          {loading === 'emergency' ? <Loader2 size={18} className="spin" /> : <AlertOctagon size={18} />}
-          EMERGENCY
-        </button>
+        {/* Emergency - only when NOT in emergency state */}
+        {!isEmergency && (
+          <button
+            className="ctrl-btn emergency"
+            onClick={() => handleAction('emergency')}
+            disabled={!!loading}
+          >
+            {loading === 'emergency' ? <Loader2 size={18} className="spin" /> : <AlertOctagon size={18} />}
+            EMERGENCY
+          </button>
+        )}
+
+        {/* Reset - only when IN emergency state */}
+        {isEmergency && (
+          <button
+            className="ctrl-btn reset"
+            onClick={() => handleAction('reset')}
+            disabled={!!loading}
+          >
+            {loading === 'reset' ? <Loader2 size={18} className="spin" /> : <RefreshCw size={18} />}
+            RESET EMERGENCY
+          </button>
+        )}
       </div>
     </div>
   );

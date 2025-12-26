@@ -393,23 +393,27 @@ public class Drone
             if (State.Status != DroneStatus.Flying && State.Status != DroneStatus.Hovering)
                 return false;
 
-            speed = speed > 0 ? Math.Min(speed, Specs.MaxSpeedMs) : Specs.MaxSpeedMs * 0.7;
+            // Calculate actual speed (capped)
+            var actualSpeed = speed > 0 ? Math.Min(speed, Specs.MaxSpeedMs) : Specs.MaxSpeedMs * 0.7;
+
             var distance = Vector3D.Distance(State.Position, targetPosition);
-            var flightTime = distance / speed;
+            var flightTime = distance / actualSpeed;
 
             State.FlightMode = FlightMode.Guided;
             State.Status = DroneStatus.Flying;
 
             var waypoints = new[]
             {
-                new Waypoint(State.Position, 0, speed),
-                new Waypoint(targetPosition, flightTime, speed)
-            };
+            new Waypoint(State.Position, 0, actualSpeed),
+            new Waypoint(targetPosition, flightTime, actualSpeed)
+        };
+
             _currentPath = FlightPath.CreateLinear(waypoints);
             _missionTime = 0;
             _isSimulating = true;
 
-            OnStateChanged($"Going to ({targetPosition.X:F1}, {targetPosition.Y:F1}, {targetPosition.Z:F1})");
+            // Show actual speed in message
+            OnStateChanged($"Going to ({targetPosition.X:F1}, {targetPosition.Y:F1}, {targetPosition.Z:F1}) at {actualSpeed:F1} m/s");
             return true;
         }
     }
@@ -519,6 +523,36 @@ public class Drone
     }
 
     /// <summary>
+    /// Reset drone from emergency state to ready state.
+    /// Only works when drone is in Emergency status.
+    /// </summary>
+    /// <returns>True if reset successful, false if not in emergency state</returns>
+    public bool ResetEmergency()
+    {
+        lock (_lock)
+        {
+            if (State.Status != DroneStatus.Emergency)
+            {
+                return false;
+            }
+
+            // Reset to safe state
+            State.Status = DroneStatus.Ready;
+            State.IsFailsafe = false;
+            State.IsArmed = false;
+            State.FlightMode = FlightMode.Stabilized;
+
+            // Clear any active operations
+            _isSimulating = false;
+            _currentPath = null;
+            CurrentMissionId = null;
+
+            OnStateChanged("Emergency reset - drone ready for operation");
+            return true;
+        }
+    }
+
+    /// <summary>
     /// Cancel current mission and hover in place
     /// </summary>
     public void CancelMission()
@@ -558,15 +592,34 @@ public class Drone
             _missionTime += deltaTime;
             State.FlightTimeSec += deltaTime;
 
-            // Check mission complete
+            // Get target position (last waypoint)
+            var targetPosition = _currentPath.GetFinalPosition();
+
+            // Check if close enough to destination (within 5 meters)
+            var distanceToTarget = Vector3D.Distance(State.Position, targetPosition);
+
+            if (distanceToTarget < 10.0 && !_currentPath.IsLooping)
+            {
+                Console.WriteLine($"[Drone] Reached destination! Distance: {distanceToTarget:F1}m");
+                State.Position = targetPosition; // Snap to exact position
+                State.Velocity = Vector3D.Zero;
+                CompleteMission();
+                return;
+            }
+
+            // Check mission complete by time
             if (_missionTime >= _currentPath.TotalDuration)
             {
                 if (_currentPath.IsLooping)
                 {
                     _missionTime = 0;
+                    Console.WriteLine($"[Drone] Loop restart");
                 }
                 else
                 {
+                    Console.WriteLine($"[Drone] Mission time complete ({_missionTime:F1}s >= {_currentPath.TotalDuration:F1}s)");
+                    State.Position = targetPosition; // Snap to exact position
+                    State.Velocity = Vector3D.Zero;
                     CompleteMission();
                     return;
                 }
@@ -577,6 +630,12 @@ public class Drone
             State.Velocity = _currentPath.GetVelocityAtTime(_missionTime);
             State.Heading = _currentPath.GetHeadingAtTime(_missionTime);
 
+            // Debug every 10 seconds
+            if ((int)_missionTime % 10 == 0 && _missionTime - (int)_missionTime < deltaTime)
+            {
+                Console.WriteLine($"[Drone] Progress: {_missionTime:F1}s / {_currentPath.TotalDuration:F1}s | Distance to target: {distanceToTarget:F0}m | Speed: {State.GroundSpeed:F1}m/s");
+            }
+
             // Calculate altitude
             State.AltitudeAGL = State.Position.Z - _homePosition.Z;
             if (State.AltitudeAGL < 0) State.AltitudeAGL = 0;
@@ -586,6 +645,14 @@ public class Drone
             State.DistanceFromHome = Vector3D.Distance(
                 new Vector3D(State.Position.X, State.Position.Y, 0),
                 new Vector3D(_homePosition.X, _homePosition.Y, 0));
+
+            // === DEBUG: Log progress every 30 seconds ===
+            if ((int)(_missionTime / 30) > (int)((_missionTime - deltaTime) / 30))
+            {
+                var progress = _currentPath.GetProgress(_missionTime) * 100;
+                Console.WriteLine($"[Drone] Progress: {progress:F0}% | Time: {_missionTime:F0}s/{_currentPath.TotalDuration:F0}s | Distance to target: {distanceToTarget:F0}m | Speed: {State.GroundSpeed:F1}m/s");
+            }
+
 
             // Update battery (simplified linear consumption)
             var consumptionRate = 100.0 / (Specs.MaxFlightTimeMinutes * 60);

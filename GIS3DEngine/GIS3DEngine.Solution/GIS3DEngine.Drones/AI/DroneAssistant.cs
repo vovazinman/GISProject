@@ -215,14 +215,19 @@ public class DroneAssistant
         var x = command.GetDouble("x");
         var y = command.GetDouble("y");
         var z = command.GetDouble("z", _activeDrone!.State.Position.Z);
-        var speed = command.GetDouble("speed", 0);
+        var speed = command.GetDouble("speed", 10);  // Default 10 if not specified
+
+        // DEBUG
+        Console.WriteLine($"[GoTo] Target: ({x}, {y}, {z})");
+        Console.WriteLine($"[GoTo] Speed from command: {speed}");
+        Console.WriteLine($"[GoTo] All params: {string.Join(", ", command.Params.Select(p => $"{p.Key}={p.Value}"))}");
 
         var target = new Vector3D(x, y, z);
         var success = _activeDrone.GoTo(target, speed);
 
         return success
-            ? CommandResult.Success($"טס לנקודה ({x}, {y}, {z}) ✈️")
-            : CommandResult.Failure("לא ניתן לטוס - הרחפן לא באוויר");
+            ? CommandResult.Success($"Flying to ({x}, {y}, {z}) at {speed} m/s ✈️")
+            : CommandResult.Failure("Cannot fly - drone not in air");
     }
 
     private CommandResult ExecuteRTL()

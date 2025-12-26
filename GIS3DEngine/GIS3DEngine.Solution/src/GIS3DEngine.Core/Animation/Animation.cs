@@ -172,6 +172,28 @@ public class FlightPath : IAnimationPath
         };
     }
 
+    /// <summary>
+    /// Gets the final destination position.
+    /// </summary>
+    public Vector3D GetFinalPosition()
+    {
+        if (_waypoints.Count == 0)
+            return Vector3D.Zero;
+
+        return _waypoints[^1].Position;
+    }
+
+    /// <summary>
+    /// Gets the starting position.
+    /// </summary>
+    public Vector3D GetStartPosition()
+    {
+        if (_waypoints.Count == 0)
+            return Vector3D.Zero;
+
+        return _waypoints[0].Position;
+    }
+
     public Vector3D GetVelocityAtTime(double time)
     {
         const double delta = 0.001;
@@ -179,6 +201,8 @@ public class FlightPath : IAnimationPath
         var p1 = GetPositionAtTime(time + delta);
         return (p1 - p0) / delta;
     }
+
+
 
     public Vector3D GetDirectionAtTime(double time)
     {

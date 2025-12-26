@@ -1,10 +1,9 @@
 /**
- * API Service - שירות לתקשורת עם ה-Backend
- * 
- * כל הקריאות ל-WebAPI עוברות דרך כאן.
- * TypeScript מבטיח שאנחנו שולחים ומקבלים את הטיפוסים הנכונים.
+ * API Service - Communication layer with Backend
+ * Handles all HTTP requests to the WebAPI
  */
 
+import { config } from '../config';
 import type {
   DroneState,
   CreateDroneRequest,
@@ -19,15 +18,17 @@ import type {
   ApiTestResponse
 } from '../types';
 
-const API_BASE = '/api';
-
-// ========== Helper Functions ==========
+const API_BASE = config.api.baseUrl;
 
 /**
- * פונקציית עזר לקריאות API עם Type Safety
+ * Helper function for API calls with error handling
  */
-async function fetchApi<T>(url: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${API_BASE}${url}`, {
+async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const url = `${API_BASE}${endpoint}`;
+  
+  console.log(`[API] ${options.method || 'GET'} ${url}`);
+
+  const response = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',
       ...options.headers
@@ -37,6 +38,7 @@ async function fetchApi<T>(url: string, options: RequestInit = {}): Promise<T> {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Request failed' }));
+    console.error(`[API] Error:`, error);
     throw new Error(error.error || error.message || `HTTP ${response.status}`);
   }
 
@@ -46,162 +48,120 @@ async function fetchApi<T>(url: string, options: RequestInit = {}): Promise<T> {
 // ========== Drone API ==========
 
 export const droneApi = {
-  /**
-   * קבל את כל הרחפנים
-   */
+  /** Get all drones */
   getAll: (): Promise<DroneState[]> => 
-    fetchApi<DroneState[]>('/drone'),
+    fetchApi<DroneState[]>('/api/drone'),
 
-  /**
-   * קבל רחפן ספציפי
-   */
+  /** Get specific drone by ID */
   get: (id: string): Promise<DroneState> => 
-    fetchApi<DroneState>(`/drone/${id}`),
+    fetchApi<DroneState>(`/api/drone/${id}`),
 
-  /**
-   * צור רחפן חדש
-   */
+  /** Create new drone */
   create: (data: CreateDroneRequest): Promise<DroneState> => 
-    fetchApi<DroneState>('/drone', {
+    fetchApi<DroneState>('/api/drone', {
       method: 'POST',
       body: JSON.stringify(data)
     }),
 
-  /**
-   * זיין את הרחפן (Arm)
-   */
+  /** Arm the drone */
   arm: (id: string): Promise<CommandResponse> => 
-    fetchApi<CommandResponse>(`/drone/${id}/arm`, { method: 'POST' }),
+    fetchApi<CommandResponse>(`/api/drone/${id}/arm`, { method: 'POST' }),
 
-  /**
-   * פרק זיון (Disarm)
-   */
+  /** Disarm the drone */
   disarm: (id: string): Promise<CommandResponse> => 
-    fetchApi<CommandResponse>(`/drone/${id}/disarm`, { method: 'POST' }),
+    fetchApi<CommandResponse>(`/api/drone/${id}/disarm`, { method: 'POST' }),
 
-  /**
-   * המראה
-   */
+  /** Takeoff to specified altitude */
   takeoff: (id: string, altitude: number = 30): Promise<CommandResponse> => 
-    fetchApi<CommandResponse>(`/drone/${id}/takeoff?altitude=${altitude}`, { method: 'POST' }),
+    fetchApi<CommandResponse>(`/api/drone/${id}/takeoff?altitude=${altitude}`, { method: 'POST' }),
 
-  /**
-   * נחיתה
-   */
+  /** Land the drone */
   land: (id: string): Promise<CommandResponse> => 
-    fetchApi<CommandResponse>(`/drone/${id}/land`, { method: 'POST' }),
+    fetchApi<CommandResponse>(`/api/drone/${id}/land`, { method: 'POST' }),
 
-  /**
-   * חזרה הביתה
-   */
+  /** Return to launch/home position */
   rtl: (id: string): Promise<CommandResponse> => 
-    fetchApi<CommandResponse>(`/drone/${id}/rtl`, { method: 'POST' }),
+    fetchApi<CommandResponse>(`/api/drone/${id}/rtl`, { method: 'POST' }),
 
-  /**
-   * עצירת חירום
-   */
+  /** Emergency stop */
   emergency: (id: string): Promise<CommandResponse> => 
-    fetchApi<CommandResponse>(`/drone/${id}/emergency`, { method: 'POST' }),
+    fetchApi<CommandResponse>(`/api/drone/${id}/emergency`, { method: 'POST' }),
 
-  /**
-   * טוס לנקודה
-   */
+  /** Reset from emergency state */
+  reset: (id: string): Promise<CommandResponse> => 
+    fetchApi<CommandResponse>(`/api/drone/${id}/reset`, { method: 'POST' }),
+
+  /** Go to specific position */
   goTo: (id: string, request: GoToRequest): Promise<CommandResponse> => 
-    fetchApi<CommandResponse>(`/drone/${id}/goto`, {
+    fetchApi<CommandResponse>(`/api/drone/${id}/goto`, {
       method: 'POST',
       body: JSON.stringify(request)
     }),
 
-  /**
-   * קבל מסלול טיסה
-   */
+  /** Get current flight path */
   getPath: (id: string): Promise<FlightPath> => 
-    fetchApi<FlightPath>(`/drone/${id}/path`),
+    fetchApi<FlightPath>(`/api/drone/${id}/path`),
 
-  /**
-   * עדכון סימולציה
-   */
+  /** Trigger simulation update */
   simulate: (id: string, deltaTime: number = 0.1): Promise<DroneState> => 
-    fetchApi<DroneState>(`/drone/${id}/simulate?deltaTime=${deltaTime}`, { method: 'POST' })
+    fetchApi<DroneState>(`/api/drone/${id}/simulate?deltaTime=${deltaTime}`, { method: 'POST' })
 };
 
 // ========== Chat API ==========
 
 export const chatApi = {
-  /**
-   * שלח הודעת צ'אט ל-AI (לא מבצע פקודות)
-   */
+  /** Send chat message to AI (no command execution) */
   send: (message: string, droneId?: string): Promise<ChatResponse> => 
-    fetchApi<ChatResponse>('/chat', {
+    fetchApi<ChatResponse>('/api/chat', {
       method: 'POST',
       body: JSON.stringify({ message, droneId } as ChatRequest)
     }),
 
-  /**
-   * שלח פקודה בשפה טבעית ובצע אותה
-   */
+  /** Send natural language command and execute it */
   command: (message: string, droneId?: string): Promise<ChatResponse> => 
-    fetchApi<ChatResponse>('/chat/command', {
+    fetchApi<ChatResponse>('/api/chat/command', {
       method: 'POST',
       body: JSON.stringify({ message, droneId } as ChatRequest)
     }),
 
-  /**
-   * בדיקת חיבור ל-API
-   */
+  /** Test API connection */
   test: (): Promise<ApiTestResponse> => 
-    fetchApi<ApiTestResponse>('/chat/test')
+    fetchApi<ApiTestResponse>('/api/chat/test')
 };
 
 // ========== Mission API ==========
 
 export const missionApi = {
-  /**
-   * קבל את כל המשימות
-   */
+  /** Get all missions */
   getAll: (): Promise<MissionInfo[]> => 
-    fetchApi<MissionInfo[]>('/mission'),
+    fetchApi<MissionInfo[]>('/api/mission'),
 
-  /**
-   * קבל משימה ספציפית
-   */
+  /** Get specific mission */
   get: (id: string): Promise<MissionInfo> => 
-    fetchApi<MissionInfo>(`/mission/${id}`),
+    fetchApi<MissionInfo>(`/api/mission/${id}`),
 
-  /**
-   * תכנון משימה עם AI
-   */
+  /** Plan mission using AI */
   plan: (droneId: string, description: string): Promise<MissionPlanResponse> => 
-    fetchApi<MissionPlanResponse>('/mission/plan', {
+    fetchApi<MissionPlanResponse>('/api/mission/plan', {
       method: 'POST',
       body: JSON.stringify({ droneId, description } as MissionPlanRequest)
     }),
 
-  /**
-   * התחל משימה
-   */
+  /** Start a mission */
   start: (missionId: string, droneId: string): Promise<CommandResponse> => 
-    fetchApi<CommandResponse>(`/mission/${missionId}/start?droneId=${droneId}`, { method: 'POST' }),
+    fetchApi<CommandResponse>(`/api/mission/${missionId}/start?droneId=${droneId}`, { method: 'POST' }),
 
-  /**
-   * עצור משימה
-   */
+  /** Stop a mission */
   stop: (missionId: string, droneId: string): Promise<CommandResponse> => 
-    fetchApi<CommandResponse>(`/mission/${missionId}/stop?droneId=${droneId}`, { method: 'POST' }),
+    fetchApi<CommandResponse>(`/api/mission/${missionId}/stop?droneId=${droneId}`, { method: 'POST' }),
 
-  /**
-   * השהה משימה
-   */
+  /** Pause a mission */
   pause: (missionId: string, droneId: string): Promise<CommandResponse> => 
-    fetchApi<CommandResponse>(`/mission/${missionId}/pause?droneId=${droneId}`, { method: 'POST' }),
+    fetchApi<CommandResponse>(`/api/mission/${missionId}/pause?droneId=${droneId}`, { method: 'POST' }),
 
-  /**
-   * המשך משימה
-   */
+  /** Resume a paused mission */
   resume: (missionId: string, droneId: string): Promise<CommandResponse> => 
-    fetchApi<CommandResponse>(`/mission/${missionId}/resume?droneId=${droneId}`, { method: 'POST' })
+    fetchApi<CommandResponse>(`/api/mission/${missionId}/resume?droneId=${droneId}`, { method: 'POST' })
 };
-
-// ========== Default Export ==========
 
 export default { droneApi, chatApi, missionApi };
