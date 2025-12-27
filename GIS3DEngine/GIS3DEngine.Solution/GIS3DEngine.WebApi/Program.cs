@@ -7,11 +7,26 @@ using GIS3DEngine.Services.MissionPlanning;
 using GIS3DEngine.WebApi.Dtos;
 using GIS3DEngine.WebApi.Hubs;
 using Microsoft.AspNetCore.SignalR;
+using Serilog;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ========== Services Configuration ==========
+// ========== Serilog + Seq ==========
+builder.Host.UseSerilog((context, config) =>
+{
+    config
+        .ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .Enrich.WithProperty("Application", "GIS3DEngine")
+        .WriteTo.Console()
+        .WriteTo.Seq("http://localhost:5341");  // Seq endpoint
+});
+
+
+// Aspire defaults
+builder.AddServiceDefaults();
 
 // Controllers with JSON options for proper serialization
 builder.Services.AddControllers()
@@ -54,6 +69,8 @@ builder.Services.AddCors(options =>
 });
 
 // Application services
+builder.Services.AddSignalR();
+builder.Services.AddControllers();
 builder.Services.AddSingleton<DroneFleetManager>();
 builder.Services.AddSingleton<MissionPlanner>(sp =>
 {
@@ -144,5 +161,12 @@ Console.WriteLine("🌐 API:        http://localhost:5000/api");
 Console.WriteLine("📖 Swagger:    http://localhost:5000/swagger");
 Console.WriteLine("📡 SignalR:    http://localhost:5000/droneHub");
 Console.WriteLine("========================================");
+
+// 🆕 Aspire endpoints
+app.MapDefaultEndpoints();
+app.MapControllers();
+
+
+app.MapGet("/health", () => Results.Ok("Service is running"));
 
 app.Run();

@@ -8,12 +8,15 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GIS3DEngine.Drones\GIS3DEngine.Drones.csproj" />
+    <ProjectReference Include="..\GIS3DEngine.ServiceDefaults\GIS3DEngine.ServiceDefaults.csproj" />
     <ProjectReference Include="..\src\GIS3DEngine.Core\GIS3DEngine.Core.csproj" />
     <ProjectReference Include="..\src\GIS3DEngine.Services\GIS3DEngine.Services.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
-  </ItemGroup>
+	<PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
+	<PackageReference Include="Serilog.Sinks.Seq" Version="8.0.0" />
+</ItemGroup>
 
 </Project>

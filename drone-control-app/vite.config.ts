@@ -5,15 +5,18 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3000,
+    port: parseInt(process.env.PORT || '5173'),
+    host: true,
+    strictPort: !!process.env.PORT,
     // Proxy API requests to the backend server
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true
+        target: process.env.services__api__https__0 || 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false
       },
       '/droneHub': {
-        target: 'http://localhost:5000',
+        target: process.env.services__api__https__0 || 'http://localhost:5000',
         changeOrigin: true,
         ws: true  // WebSocket support for SignalR
       }
