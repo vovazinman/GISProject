@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GIS3DEngine.Drones\GIS3DEngine.Drones.csproj" />
+    <ProjectReference Include="..\src\GIS3DEngine.Core\GIS3DEngine.Core.csproj" />
+  </ItemGroup>
+
+</Project>

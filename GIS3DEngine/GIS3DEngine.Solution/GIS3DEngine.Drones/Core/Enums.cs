@@ -55,7 +55,10 @@ public enum FlightMode
     Land,
     Takeoff,
     Circle,
-    Follow
+    Follow,
+    Direct,      // Straight line
+    Safe,        // Climb → Fly → Descend
+    Terrain      // Follow terrain (future)
 }
 
 /// <summary>

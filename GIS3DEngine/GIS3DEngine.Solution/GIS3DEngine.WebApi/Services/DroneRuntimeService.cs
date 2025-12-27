@@ -1,5 +1,4 @@
 ﻿using GIS3DEngine.Drones.Core;
-using GIS3DEngine.WebApi.Dtos;
 using GIS3DEngine.WebApi.Hubs;
 using Microsoft.AspNetCore.SignalR;
 

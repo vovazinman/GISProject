@@ -1,7 +1,6 @@
 ﻿using GIS3DEngine.Drones.AI;
 using GIS3DEngine.Drones.Core;
 using GIS3DEngine.Drones.Fleet;
-using GIS3DEngine.WebApi.Dtos;
 using GIS3DEngine.WebApi.Hubs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -35,13 +34,13 @@ public class ChatController : ControllerBase
     /// POST /api/chat
     /// </summary>
     [HttpPost]
-    public async Task<ActionResult<ChatResponse>> Chat([FromBody] ChatRequest request)
+    public async Task<ActionResult<ChatResponseDto>> Chat([FromBody] ChatRequestDto request)
     {
         // Get API key from configuration
         var apiKey = _config["Anthropic:ApiKey"];
         if (string.IsNullOrEmpty(apiKey) || apiKey.Contains("YOUR"))
         {
-            return BadRequest(new ErrorResponse
+            return BadRequest(new ErrorResponseDto
             {
                 Error = "API Key not configured",
                 Details = "Add Anthropic:ApiKey to appsettings.json",
@@ -71,7 +70,7 @@ public class ChatController : ControllerBase
             _logger.LogInformation("Chat: {Message} -> {Response}",
                 request.Message, response.Text.Substring(0, Math.Min(50, response.Text.Length)));
 
-            return Ok(new ChatResponse
+            return Ok(new ChatResponseDto
             {
                 Response = response.Text,
                 HasCommand = response.HasCommand,
@@ -82,7 +81,7 @@ public class ChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Chat error for message: {Message}", request.Message);
-            return StatusCode(500, new ErrorResponse
+            return StatusCode(500, new ErrorResponseDto
             {
                 Error = "Chat failed",
                 Details = ex.Message,
@@ -96,12 +95,12 @@ public class ChatController : ControllerBase
     /// POST /api/chat/command
     /// </summary>
     [HttpPost("command")]
-    public async Task<ActionResult<ChatResponse>> Command([FromBody] ChatRequest request)
+    public async Task<ActionResult<ChatResponseDto>> Command([FromBody] ChatRequestDto request)
     {
         var apiKey = _config["Anthropic:ApiKey"];
         if (string.IsNullOrEmpty(apiKey) || apiKey.Contains("YOUR"))
         {
-            return BadRequest(new ErrorResponse
+            return BadRequest(new ErrorResponseDto
             {
                 Error = "API Key not configured",
                 StatusCode = 400
@@ -113,7 +112,7 @@ public class ChatController : ControllerBase
             var drone = GetDrone(request.DroneId);
             if (drone == null)
             {
-                return BadRequest(new ErrorResponse
+                return BadRequest(new ErrorResponseDto
                 {
                     Error = "No drone available",
                     Details = "Create a drone first or specify a valid DroneId",
@@ -142,7 +141,7 @@ public class ChatController : ControllerBase
                     $"❌ {result.Message}");
             }
 
-            return Ok(new ChatResponse
+            return Ok(new ChatResponseDto
             {
                 Response = result.AiResponse ?? result.Message,
                 HasCommand = true,
@@ -153,7 +152,7 @@ public class ChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Command error: {Message}", request.Message);
-            return StatusCode(500, new ErrorResponse
+            return StatusCode(500, new ErrorResponseDto
             {
                 Error = "Command failed",
                 Details = ex.Message,
@@ -167,7 +166,7 @@ public class ChatController : ControllerBase
     /// POST /api/chat/stream
     /// </summary>
     [HttpPost("stream")]
-    public async Task StreamChat([FromBody] ChatRequest request)
+    public async Task StreamChat([FromBody] ChatRequestDto request)
     {
         // Set headers for SSE (Server-Sent Events)
         Response.ContentType = "text/event-stream";

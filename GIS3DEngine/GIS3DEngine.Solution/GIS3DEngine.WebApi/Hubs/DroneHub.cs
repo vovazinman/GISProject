@@ -1,5 +1,4 @@
 ﻿using GIS3DEngine.Drones.Fleet;
-using GIS3DEngine.WebApi.Dtos;
 using Microsoft.AspNetCore.SignalR;
 
 namespace GIS3DEngine.WebApi.Hubs;

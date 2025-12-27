@@ -1,7 +1,7 @@
-﻿using GIS3DEngine.Core.Primitives;
+﻿using GIS3DEngine.Core.Flights;
+using GIS3DEngine.Core.Primitives;
 using GIS3DEngine.Drones.Core;
 using GIS3DEngine.Drones.Fleet;
-using GIS3DEngine.WebApi.Dtos;
 using GIS3DEngine.WebApi.Hubs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -46,7 +46,7 @@ public class DroneController : ControllerBase
     {
         var drone = _fleet.GetDrone(id);
         if (drone == null)
-            return NotFound(new ErrorResponse { Error = "Drone not found", StatusCode = 404 });
+            return NotFound(new ErrorResponseDto { Error = "Drone not found", StatusCode = 404 });
 
         return Ok(DroneStateDto.From(drone));
     }
@@ -56,7 +56,7 @@ public class DroneController : ControllerBase
     /// POST /api/drone
     /// </summary>
     [HttpPost]
-    public ActionResult<DroneStateDto> Create([FromBody] CreateDroneRequest request)
+    public ActionResult<DroneStateDto> Create([FromBody] CreateDroneRequestDto request)
     {
         var specs = request.SpecsType?.ToLower() switch
         {
@@ -87,17 +87,17 @@ public class DroneController : ControllerBase
     /// POST /api/drone/{id}/arm
     /// </summary>
     [HttpPost("{id}/arm")]
-    public async Task<ActionResult<CommandResponse>> Arm(string id)
+    public async Task<ActionResult<CommandResponseDto>> Arm(string id)
     {
         var drone = _fleet.GetDrone(id);
         if (drone == null)
-            return NotFound(new ErrorResponse { Error = "Drone not found", StatusCode = 404 });
+            return NotFound(new ErrorResponseDto { Error = "Drone not found", StatusCode = 404 });
 
         var success = drone.Arm();
 
         await BroadcastDroneState(drone);
 
-        return Ok(new CommandResponse
+        return Ok(new CommandResponseDto
         {
             Success = success,
             Message = success ? "Drone armed" : "Failed to arm drone",
@@ -110,17 +110,17 @@ public class DroneController : ControllerBase
     /// POST /api/drone/{id}/disarm
     /// </summary>
     [HttpPost("{id}/disarm")]
-    public async Task<ActionResult<CommandResponse>> Disarm(string id)
+    public async Task<ActionResult<CommandResponseDto>> Disarm(string id)
     {
         var drone = _fleet.GetDrone(id);
         if (drone == null)
-            return NotFound(new ErrorResponse { Error = "Drone not found", StatusCode = 404 });
+            return NotFound(new ErrorResponseDto { Error = "Drone not found", StatusCode = 404 });
 
         var success = drone.Disarm();
 
         await BroadcastDroneState(drone);
 
-        return Ok(new CommandResponse
+        return Ok(new CommandResponseDto
         {
             Success = success,
             Message = success ? "Drone disarmed" : "Failed to disarm drone",
@@ -133,11 +133,11 @@ public class DroneController : ControllerBase
     /// POST /api/drone/{id}/takeoff?altitude=30
     /// </summary>
     [HttpPost("{id}/takeoff")]
-    public async Task<ActionResult<CommandResponse>> Takeoff(string id, [FromQuery] double altitude = 30)
+    public async Task<ActionResult<CommandResponseDto>> Takeoff(string id, [FromQuery] double altitude = 30)
     {
         var drone = _fleet.GetDrone(id);
         if (drone == null)
-            return NotFound(new ErrorResponse { Error = "Drone not found", StatusCode = 404 });
+            return NotFound(new ErrorResponseDto { Error = "Drone not found", StatusCode = 404 });
 
         if (!drone.State.IsArmed)
             drone.Arm();
@@ -146,7 +146,7 @@ public class DroneController : ControllerBase
 
         await BroadcastDroneState(drone);
 
-        return Ok(new CommandResponse
+        return Ok(new CommandResponseDto
         {
             Success = success,
             Message = success ? $"Taking off to {altitude}m" : "Failed to takeoff",
@@ -159,17 +159,17 @@ public class DroneController : ControllerBase
     /// POST /api/drone/{id}/land
     /// </summary>
     [HttpPost("{id}/land")]
-    public async Task<ActionResult<CommandResponse>> Land(string id)
+    public async Task<ActionResult<CommandResponseDto>> Land(string id)
     {
         var drone = _fleet.GetDrone(id);
         if (drone == null)
-            return NotFound(new ErrorResponse { Error = "Drone not found", StatusCode = 404 });
+            return NotFound(new ErrorResponseDto { Error = "Drone not found", StatusCode = 404 });
 
         var success = drone.Land();
 
         await BroadcastDroneState(drone);
 
-        return Ok(new CommandResponse
+        return Ok(new CommandResponseDto
         {
             Success = success,
             Message = success ? "Landing" : "Failed to land",
@@ -182,18 +182,18 @@ public class DroneController : ControllerBase
     /// POST /api/drone/{id}/goto
     /// </summary>
     [HttpPost("{id}/goto")]
-    public async Task<ActionResult<CommandResponse>> GoTo(string id, [FromBody] GoToRequest request)
+    public async Task<ActionResult<CommandResponseDto>> GoTo(string id, [FromBody] GoToRequestDto request)
     {
         var drone = _fleet.GetDrone(id);
         if (drone == null)
-            return NotFound(new ErrorResponse { Error = "Drone not found", StatusCode = 404 });
+            return NotFound(new ErrorResponseDto { Error = "Drone not found", StatusCode = 404 });
 
         var target = new Vector3D(request.X, request.Y, request.Z);
         var success = drone.GoTo(target, request.Speed);
 
         await BroadcastDroneState(drone);
 
-        return Ok(new CommandResponse
+        return Ok(new CommandResponseDto
         {
             Success = success,
             Message = success ? $"Flying to ({request.X}, {request.Y}, {request.Z})" : "Failed to navigate",
@@ -206,17 +206,17 @@ public class DroneController : ControllerBase
     /// POST /api/drone/{id}/rtl
     /// </summary>
     [HttpPost("{id}/rtl")]
-    public async Task<ActionResult<CommandResponse>> ReturnToLaunch(string id)
+    public async Task<ActionResult<CommandResponseDto>> ReturnToLaunch(string id)
     {
         var drone = _fleet.GetDrone(id);
         if (drone == null)
-            return NotFound(new ErrorResponse { Error = "Drone not found", StatusCode = 404 });
+            return NotFound(new ErrorResponseDto { Error = "Drone not found", StatusCode = 404 });
 
         var success = drone.ReturnToLaunch();
 
         await BroadcastDroneState(drone);
 
-        return Ok(new CommandResponse
+        return Ok(new CommandResponseDto
         {
             Success = success,
             Message = success ? "Returning to launch" : "Failed to RTL",
@@ -229,11 +229,11 @@ public class DroneController : ControllerBase
     /// POST /api/drone/{id}/emergency
     /// </summary>
     [HttpPost("{id}/emergency")]
-    public async Task<ActionResult<CommandResponse>> Emergency(string id)
+    public async Task<ActionResult<CommandResponseDto>> Emergency(string id)
     {
         var drone = _fleet.GetDrone(id);
         if (drone == null)
-            return NotFound(new ErrorResponse { Error = "Drone not found", StatusCode = 404 });
+            return NotFound(new ErrorResponseDto { Error = "Drone not found", StatusCode = 404 });
 
         drone.EmergencyStop();
 
@@ -248,7 +248,7 @@ public class DroneController : ControllerBase
 
         await BroadcastDroneState(drone);
 
-        return Ok(new CommandResponse
+        return Ok(new CommandResponseDto
         {
             Success = true,
             Message = "Emergency stop activated!",
@@ -261,11 +261,11 @@ public class DroneController : ControllerBase
     /// POST /api/drone/{id}/reset
     /// </summary>
     [HttpPost("{id}/reset")]
-    public async Task<ActionResult<CommandResponse>> ResetEmergency(string id)
+    public async Task<ActionResult<CommandResponseDto>> ResetEmergency(string id)
     {
         var drone = _fleet.GetDrone(id);
         if (drone == null)
-            return NotFound(new ErrorResponse { Error = "Drone not found", StatusCode = 404 });
+            return NotFound(new ErrorResponseDto { Error = "Drone not found", StatusCode = 404 });
 
         var success = drone.ResetEmergency();
 
@@ -274,7 +274,7 @@ public class DroneController : ControllerBase
             await BroadcastDroneState(drone);
         }
 
-        return Ok(new CommandResponse
+        return Ok(new CommandResponseDto
         {
             Success = success,
             Message = success ? "Emergency reset - drone ready" : "Drone is not in emergency state",
@@ -291,7 +291,7 @@ public class DroneController : ControllerBase
     {
         var drone = _fleet.GetDrone(id);
         if (drone == null)
-            return NotFound(new ErrorResponse { Error = "Drone not found", StatusCode = 404 });
+            return NotFound(new ErrorResponseDto { Error = "Drone not found", StatusCode = 404 });
 
         if (drone.CurrentPath == null)
             return Ok(new FlightPathDto { DroneId = id });
@@ -308,15 +308,14 @@ public class DroneController : ControllerBase
     {
         var drone = _fleet.GetDrone(id);
         if (drone == null)
-            return NotFound(new ErrorResponse { Error = "Drone not found", StatusCode = 404 });
+            return NotFound(new ErrorResponseDto { Error = "Drone not found", StatusCode = 404 });
 
         drone.Update(deltaTime);
 
         await BroadcastDroneState(drone);
 
         return Ok(DroneStateDto.From(drone));
-    }
-
+    }    
     /// <summary>
     /// Helper: Broadcast drone state to all clients
     /// </summary>

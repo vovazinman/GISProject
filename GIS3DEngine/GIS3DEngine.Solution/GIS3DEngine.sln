@@ -18,6 +18,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GIS3DEngine.AppHost", "GIS3
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GIS3DEngine.ServiceDefaults", "GIS3DEngine.ServiceDefaults\GIS3DEngine.ServiceDefaults.csproj", "{14E32991-4C3A-46F1-A720-F2B24B9D0D04}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GIS3DEngine.Application", "GIS3DEngine.Application\GIS3DEngine.Application.csproj", "{7025CBF4-BCA4-4768-90C4-16CD6FEA8D42}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -56,6 +58,10 @@ Global
 		{14E32991-4C3A-46F1-A720-F2B24B9D0D04}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{14E32991-4C3A-46F1-A720-F2B24B9D0D04}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{14E32991-4C3A-46F1-A720-F2B24B9D0D04}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7025CBF4-BCA4-4768-90C4-16CD6FEA8D42}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7025CBF4-BCA4-4768-90C4-16CD6FEA8D42}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7025CBF4-BCA4-4768-90C4-16CD6FEA8D42}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7025CBF4-BCA4-4768-90C4-16CD6FEA8D42}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

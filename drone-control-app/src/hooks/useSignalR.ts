@@ -1,137 +1,249 @@
-/**
- * useSignalR - Custom Hook לחיבור Real-time
- * 
- * מתחבר ל-SignalR Hub ומקשיב לאירועים.
- * TypeScript מבטיח שה-handlers מקבלים את הטיפוסים הנכונים.
- */
-
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import * as signalR from '@microsoft/signalr';
-import type { DroneState, FlightPath } from '../types';
+import type { DroneState, FlightPath, Vector3D, DroneStatus, FlightMode } from '../types';
 
-// ========== Types ==========
+// ========== SignalR DTOs (from backend) ==========
 
-interface SignalRHandlers {
-  onDroneStateUpdated?: (state: DroneState) => void;
-  onFlightPathUpdated?: (path: FlightPath) => void;
-  onReceiveMessage?: (user: string, message: string) => void;
-  onMissionUpdated?: (data: { missionId: string; status: string; progress: number }) => void;
-  onAlertReceived?: (data: { droneId: string; alertType: string; message: string }) => void;
-  onChatChunk?: (chunk: string) => void;
+export interface DroneStateDto {
+  droneId: string;
+  status: string;
+  flightMode: string;
+  position: Vector3D;
+  velocity: Vector3D;
+  altitudeAGL: number;
+  groundSpeed: number;
+  batteryPercent: number;
+  distanceFromHome: number;
+  distanceTraveled: number;
+  flightTimeSec: number;
+  isArmed: boolean;
+  currentMissionId: string | null;
+  currentWaypointIndex: number;
+  totalWaypoints: number;
+  timestampUtc: string;
 }
 
-interface UseSignalRReturn {
-  connection: signalR.HubConnection | null;
-  isConnected: boolean;
-  connectionError: string | null;
-  subscribeToDrone: (droneId: string) => Promise<void>;
-  unsubscribeFromDrone: (droneId: string) => Promise<void>;
+export interface FlightPathDto {
+  droneId: string;
+  waypoints: Array<{ position: Vector3D; time: number; speed: number }>;
+  totalDistance: number;
+  totalDuration: number;
+  distance?: number;
+  eta?: number;
+}
+
+export interface MissionUpdate {
+  droneId: string;
+  missionId: string;
+  status: string;
+  progress: number;
+  timestamp: string;
+}
+
+export interface Alert {
+  droneId: string;
+  alertType: string;
+  message: string;
+  severity: 'info' | 'warning' | 'error' | 'critical';
+  timestamp: string;
+}
+
+// ========== Mappers ==========
+
+const mapDroneState = (dto: DroneStateDto): DroneState => ({
+  droneId: dto.droneId,
+  status: dto.status as DroneStatus,
+  flightMode: dto.flightMode as FlightMode,
+  position: dto.position,
+  velocity: dto.velocity ?? { x: 0, y: 0, z: 0 },
+  altitudeAGL: dto.altitudeAGL ?? dto.position.z,
+  groundSpeed: dto.groundSpeed ?? 0,
+  batteryPercent: dto.batteryPercent,
+  distanceFromHome: dto.distanceFromHome ?? 0,
+  distanceTraveled: dto.distanceTraveled ?? 0,
+  flightTimeSec: dto.flightTimeSec ?? 0,
+  isArmed: dto.isArmed,
+  currentMissionId: dto.currentMissionId,
+  currentWaypointIndex: dto.currentWaypointIndex ?? 0,
+  totalWaypoints: dto.totalWaypoints ?? 0,
+  timestampUtc: dto.timestampUtc ?? new Date().toISOString()
+});
+
+const mapFlightPath = (dto: FlightPathDto): FlightPath => ({
+  droneId: dto.droneId,
+  waypoints: dto.waypoints.map(wp => ({
+    position: wp.position ?? wp,  // Handle both formats
+    time: wp.time ?? 0,
+    speed: wp.speed ?? 0
+  })),
+  totalDistance: dto.totalDistance,
+  totalDuration: dto.totalDuration
+});
+
+// ========== Hook Options ==========
+
+interface UseSignalROptions {
+  hubUrl?: string;
+  autoConnect?: boolean;
+  onDroneStateUpdated?: (state: DroneState) => void;
+  onFlightPathUpdated?: (path: FlightPath) => void;
+  onMissionUpdated?: (mission: MissionUpdate) => void;
+  onAlertReceived?: (alert: Alert) => void;
 }
 
 // ========== Hook ==========
 
-export function useSignalR(handlers: SignalRHandlers = {}): UseSignalRReturn {
-  const connectionRef = useRef<signalR.HubConnection | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
+export const useSignalR = (options: UseSignalROptions = {}) => {
+  const {
+    hubUrl = '/droneHub',
+    autoConnect = true,
+    onDroneStateUpdated,
+    onFlightPathUpdated,
+    onMissionUpdated,
+    onAlertReceived
+  } = options;
 
+  const [connectionState, setConnectionState] = useState<signalR.HubConnectionState>(
+    signalR.HubConnectionState.Disconnected
+  );
+  const [error, setError] = useState<string | null>(null);
+  const connectionRef = useRef<signalR.HubConnection | null>(null);
+
+  // Create connection
   useEffect(() => {
-    // יצירת החיבור
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl('/droneHub')
+      .withUrl(hubUrl)
       .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
       .configureLogging(signalR.LogLevel.Information)
       .build();
 
     connectionRef.current = connection;
 
-    // רישום לאירועים
-    if (handlers.onDroneStateUpdated) {
-      connection.on('DroneStateUpdated', handlers.onDroneStateUpdated);
-    }
-
-    if (handlers.onFlightPathUpdated) {
-      connection.on('FlightPathUpdated', handlers.onFlightPathUpdated);
-    }
-
-    if (handlers.onReceiveMessage) {
-      connection.on('ReceiveMessage', handlers.onReceiveMessage);
-    }
-
-    if (handlers.onMissionUpdated) {
-      connection.on('MissionUpdated', handlers.onMissionUpdated);
-    }
-
-    if (handlers.onAlertReceived) {
-      connection.on('AlertReceived', handlers.onAlertReceived);
-    }
-
-    if (handlers.onChatChunk) {
-      connection.on('ChatChunk', handlers.onChatChunk);
-    }
-
-    // מצבי חיבור
-    connection.onclose((error) => {
-      console.log('SignalR: Disconnected', error);
-      setIsConnected(false);
-      setConnectionError(error?.message || 'Disconnected');
-    });
-
-    connection.onreconnecting((error) => {
-      console.log('SignalR: Reconnecting...', error);
-      setIsConnected(false);
+    // Connection state changes
+    connection.onreconnecting((err) => {
+      console.log('SignalR reconnecting...', err);
+      setConnectionState(signalR.HubConnectionState.Reconnecting);
+      setError('Reconnecting...');
     });
 
     connection.onreconnected((connectionId) => {
-      console.log('SignalR: Reconnected!', connectionId);
-      setIsConnected(true);
-      setConnectionError(null);
+      console.log('SignalR reconnected:', connectionId);
+      setConnectionState(signalR.HubConnectionState.Connected);
+      setError(null);
     });
 
-    // התחברות
-    const startConnection = async () => {
-      try {
-        await connection.start();
-        console.log('SignalR: Connected!');
-        setIsConnected(true);
-        setConnectionError(null);
-      } catch (err) {
-        const error = err as Error;
-        console.error('SignalR: Connection failed', error);
-        setConnectionError(error.message);
-        setIsConnected(false);
-        setTimeout(startConnection, 5000);
-      }
-    };
+    connection.onclose((err) => {
+      console.log('SignalR closed:', err);
+      setConnectionState(signalR.HubConnectionState.Disconnected);
+      if (err) setError('Connection lost');
+    });
 
-    startConnection();
+    // Auto connect
+    if (autoConnect) {
+      connection.start()
+        .then(() => {
+          console.log('SignalR connected');
+          setConnectionState(signalR.HubConnectionState.Connected);
+          setError(null);
+        })
+        .catch((err) => {
+          console.error('SignalR connection error:', err);
+          setError('Failed to connect');
+        });
+    }
 
-    // ניקוי
+    // Cleanup
     return () => {
       connection.stop();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hubUrl, autoConnect]);
 
-  // מתודות
-  const subscribeToDrone = useCallback(async (droneId: string) => {
-    if (connectionRef.current?.state === signalR.HubConnectionState.Connected) {
-      await connectionRef.current.invoke('SubscribeToDrone', droneId);
+  // Update event handlers when callbacks change
+  useEffect(() => {
+    const connection = connectionRef.current;
+    if (!connection) return;
+
+    // Remove old handlers
+    connection.off('DroneStateUpdated');
+    connection.off('FlightPathUpdated');
+    connection.off('MissionUpdated');
+    connection.off('AlertReceived');
+
+    // Add new handlers with mapping
+    connection.on('DroneStateUpdated', (dto: DroneStateDto) => {
+      const mapped = mapDroneState(dto);
+      onDroneStateUpdated?.(mapped);
+    });
+
+    connection.on('FlightPathUpdated', (dto: FlightPathDto) => {
+      const mapped = mapFlightPath(dto);
+      onFlightPathUpdated?.(mapped);
+    });
+
+    connection.on('MissionUpdated', (mission: MissionUpdate) => {
+      onMissionUpdated?.(mission);
+    });
+
+    connection.on('AlertReceived', (alert: Alert) => {
+      onAlertReceived?.(alert);
+    });
+  }, [onDroneStateUpdated, onFlightPathUpdated, onMissionUpdated, onAlertReceived]);
+
+  // Manual connect
+  const connect = useCallback(async () => {
+    const connection = connectionRef.current;
+    if (!connection || connection.state === signalR.HubConnectionState.Connected) return;
+
+    try {
+      await connection.start();
+      setConnectionState(signalR.HubConnectionState.Connected);
+      setError(null);
+    } catch (err) {
+      setError('Failed to connect');
     }
   }, []);
 
+  // Manual disconnect
+  const disconnect = useCallback(async () => {
+    const connection = connectionRef.current;
+    if (!connection) return;
+
+    await connection.stop();
+    setConnectionState(signalR.HubConnectionState.Disconnected);
+  }, []);
+
+  // Subscribe to drone group
+  const subscribeToDrone = useCallback(async (droneId: string) => {
+    const connection = connectionRef.current;
+    if (!connection || connection.state !== signalR.HubConnectionState.Connected) return;
+
+    try {
+      await connection.invoke('SubscribeToDrone', droneId);
+      console.log(`Subscribed to drone: ${droneId}`);
+    } catch (err) {
+      console.error('Failed to subscribe:', err);
+    }
+  }, []);
+
+  // Unsubscribe from drone group
   const unsubscribeFromDrone = useCallback(async (droneId: string) => {
-    if (connectionRef.current?.state === signalR.HubConnectionState.Connected) {
-      await connectionRef.current.invoke('UnsubscribeFromDrone', droneId);
+    const connection = connectionRef.current;
+    if (!connection || connection.state !== signalR.HubConnectionState.Connected) return;
+
+    try {
+      await connection.invoke('UnsubscribeFromDrone', droneId);
+    } catch (err) {
+      console.error('Failed to unsubscribe:', err);
     }
   }, []);
 
   return {
-    connection: connectionRef.current,
-    isConnected,
-    connectionError,
+    connectionState,
+    isConnected: connectionState === signalR.HubConnectionState.Connected,
+    error,
+    connect,
+    disconnect,
     subscribeToDrone,
     unsubscribeFromDrone
   };
-}
-
-export default useSignalR;
+};

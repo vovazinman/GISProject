@@ -1,4 +1,5 @@
 ﻿using GIS3DEngine.Core.Animation;
+using GIS3DEngine.Core.Flights;
 using GIS3DEngine.Core.Primitives;
 using GIS3DEngine.Drones.Core;
 using Microsoft.Extensions.Logging;

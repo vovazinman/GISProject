@@ -1,4 +1,5 @@
 using GIS3DEngine.Core.Animation;
+using GIS3DEngine.Core.Flights;
 using GIS3DEngine.Core.Geometry;
 using GIS3DEngine.Core.Interfaces;
 using GIS3DEngine.Core.Primitives;

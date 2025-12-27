@@ -1,5 +1,7 @@
-﻿using GIS3DEngine.Core.Primitives;
-using GIS3DEngine.Core.Animation;
+﻿using GIS3DEngine.Core.Animation;
+using GIS3DEngine.Core.Flights;
+using GIS3DEngine.Core.Primitives;
+using System.Security.Cryptography;
 
 namespace GIS3DEngine.Drones.Core;
 
@@ -193,6 +195,17 @@ public class Drone
 
     /// <summary>Flight path being followed.</summary>
     public FlightPath? CurrentPath => _currentPath;
+    public double MissionTime { get; private set; } = 0;
+
+    /// <summary>Assigned drone ID.</summary>
+    public string? AssignedDroneId { get; set; }
+
+    /// <summary>Alias for AssignedDroneId (backwards compatibility).</summary>
+    public string? DroneId
+    {
+        get => AssignedDroneId;
+        set => AssignedDroneId = value;
+    }
 
     #endregion
 
@@ -386,34 +399,55 @@ public class Drone
     /// <summary>
     /// Fly to a specific position.
     /// </summary>
-    public bool GoTo(Vector3D targetPosition, double speed = 0)
+    public bool GoTo(Vector3D targetPosition, double speed = 0, FlightPath? flightPath = null)
     {
         lock (_lock)
         {
-            if (State.Status != DroneStatus.Flying && State.Status != DroneStatus.Hovering)
+            if (State.Status != DroneStatus.Flying &&
+                State.Status != DroneStatus.Hovering &&
+                State.Status != DroneStatus.Armed &&
+                State.Status != DroneStatus.Ready)
                 return false;
+
+            // Auto-arm if needed
+            if (!State.IsArmed)
+                Arm();
+
+            // Auto-takeoff if on ground
+            if (State.Status == DroneStatus.Ready || State.Status == DroneStatus.Landed)
+            {
+                Takeoff(Math.Max(targetPosition.Z, 10));
+            }
 
             // Calculate actual speed (capped)
             var actualSpeed = speed > 0 ? Math.Min(speed, Specs.MaxSpeedMs) : Specs.MaxSpeedMs * 0.7;
 
-            var distance = Vector3D.Distance(State.Position, targetPosition);
-            var flightTime = distance / actualSpeed;
+            // Use provided path or create a simple linear path
+            if (flightPath != null)
+            {
+                _currentPath = flightPath;
+            }
+            else
+            {
+                var distance = Vector3D.Distance(State.Position, targetPosition);
+                var flightTime = distance / actualSpeed;
+
+                var waypoints = new[]
+                {
+                new Waypoint(State.Position, 0, actualSpeed),
+                new Waypoint(targetPosition, flightTime, actualSpeed)
+            };
+
+                _currentPath = FlightPath.CreateLinear(waypoints);
+            }
 
             State.FlightMode = FlightMode.Guided;
             State.Status = DroneStatus.Flying;
-
-            var waypoints = new[]
-            {
-            new Waypoint(State.Position, 0, actualSpeed),
-            new Waypoint(targetPosition, flightTime, actualSpeed)
-        };
-
-            _currentPath = FlightPath.CreateLinear(waypoints);
             _missionTime = 0;
             _isSimulating = true;
 
-            // Show actual speed in message
             OnStateChanged($"Going to ({targetPosition.X:F1}, {targetPosition.Y:F1}, {targetPosition.Z:F1}) at {actualSpeed:F1} m/s");
+
             return true;
         }
     }
@@ -429,13 +463,21 @@ public class Drone
     {
         lock (_lock)
         {
-            if (State.Status != DroneStatus.Flying && State.Status != DroneStatus.Hovering &&
-                State.Status != DroneStatus.Armed)
+            if (State.Status != DroneStatus.Ready &&
+                State.Status != DroneStatus.Armed &&
+                State.Status != DroneStatus.Hovering &&
+                State.Status != DroneStatus.Landed)
+            {
                 return false;
+            }
 
             CurrentMissionId = missionId;
             _currentPath = path;
             _missionTime = 0;
+
+            if (!State.IsArmed)
+                Arm();
+
             State.FlightMode = FlightMode.Auto;
             State.CurrentWaypointIndex = 0;
             State.TotalWaypoints = path.Waypoints.Count;
@@ -449,8 +491,18 @@ public class Drone
                 State.Status = DroneStatus.Flying;
             }
 
+            // Auto-takeoff if on ground
+            if (State.Status == DroneStatus.Landed || State.Status == DroneStatus.Ready)
+            {
+                var targetAlt = _currentPath.GetStartPosition().Z;
+                if (targetAlt < 5) targetAlt = 30; // Default altitude
+                Takeoff(targetAlt);
+            }
+
+            State.Status = DroneStatus.Flying ;
+
             _isSimulating = true;
-            OnStateChanged($"Starting mission: {missionId}");
+            OnStateChanged($"Starting mission: {CurrentMissionId}");
             return true;
         }
     }
@@ -498,6 +550,9 @@ public class Drone
     {
         lock (_lock)
         {
+            Hover();
+            ClearFlightPath();
+
             _isSimulating = false;
             CurrentMissionId = null;
             State.Status = DroneStatus.Hovering;
@@ -576,6 +631,38 @@ public class Drone
     }
     #endregion
 
+    #region Flight Path Control
+    // <summary>
+    /// Set the flight path for the drone.
+    /// </summary>
+    public void SetFlightPath(FlightPath path)
+    {
+        _currentPath = path;
+        _missionTime = 0;
+        State.Status = DroneStatus.Flying;
+    }
+
+    /// <summary>
+    /// Clear the current flight path.
+    /// </summary>
+    public void ClearFlightPath()
+    {
+        _currentPath = null;
+        _missionTime = 0;
+    }
+
+    /// <summary>
+    /// Hover in place (pause movement).
+    /// </summary>
+    public void Hover()
+    {
+        if (State.Status == DroneStatus.Flying)
+        {
+            State.Status = DroneStatus.Hovering;
+        }
+    } 
+    #endregion
+
     #region Simulation
 
     /// <summary>
@@ -590,6 +677,7 @@ public class Drone
 
             var previousPosition = State.Position;
             _missionTime += deltaTime;
+            MissionTime += deltaTime;
             State.FlightTimeSec += deltaTime;
 
             // Get target position (last waypoint)

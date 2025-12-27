@@ -3,7 +3,6 @@ using GIS3DEngine.Drones.AI;
 using GIS3DEngine.Drones.Core;
 using GIS3DEngine.Drones.Fleet;
 using GIS3DEngine.Drones.Missions;
-using GIS3DEngine.WebApi.Dtos;
 using GIS3DEngine.WebApi.Hubs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -53,7 +52,7 @@ public class MissionController : ControllerBase
     {
         var mission = _fleet.GetMission(id);
         if (mission == null)
-            return NotFound(new ErrorResponse { Error = "Mission not found", StatusCode = 404 });
+            return NotFound(new ErrorResponseDto { Error = "Mission not found", StatusCode = 404 });
 
         return Ok(MissionInfoDto.From(mission));
     }
@@ -67,7 +66,7 @@ public class MissionController : ControllerBase
     {
         var mission = _fleet.GetMission(id);
         if (mission == null)
-            return NotFound(new ErrorResponse { Error = "Mission not found", StatusCode = 404 });
+            return NotFound(new ErrorResponseDto { Error = "Mission not found", StatusCode = 404 });
 
         var path = mission.GenerateFlightPath();
         return Ok(FlightPathDto.From(id, path));
@@ -82,12 +81,12 @@ public class MissionController : ControllerBase
     /// POST /api/mission/plan
     /// </summary>
     [HttpPost("plan")]
-    public async Task<ActionResult<MissionPlanResponse>> PlanWithAI([FromBody] MissionPlanRequest request)
+    public async Task<ActionResult<MissionPlanResponseDto>> PlanWithAI([FromBody] MissionPlanRequestDto request)
     {
         var apiKey = _config["Anthropic:ApiKey"];
         if (string.IsNullOrEmpty(apiKey) || apiKey.Contains("YOUR"))
         {
-            return BadRequest(new ErrorResponse
+            return BadRequest(new ErrorResponseDto
             {
                 Error = "API Key not configured",
                 StatusCode = 400
@@ -97,7 +96,7 @@ public class MissionController : ControllerBase
         var drone = _fleet.GetDrone(request.DroneId);
         if (drone == null)
         {
-            return BadRequest(new ErrorResponse
+            return BadRequest(new ErrorResponseDto
             {
                 Error = "Drone not found",
                 StatusCode = 400
@@ -117,7 +116,7 @@ public class MissionController : ControllerBase
 
             if (!plan.IsValid)
             {
-                return BadRequest(new MissionPlanResponse
+                return BadRequest(new MissionPlanResponseDto
                 {
                     Success = false,
                     ErrorMessage = plan.ErrorMessage
@@ -128,7 +127,7 @@ public class MissionController : ControllerBase
             var mission = planner.GenerateMission(plan, drone.HomePosition);
             if (mission == null)
             {
-                return BadRequest(new MissionPlanResponse
+                return BadRequest(new MissionPlanResponseDto
                 {
                     Success = false,
                     ErrorMessage = "Failed to generate mission from plan"
@@ -145,7 +144,7 @@ public class MissionController : ControllerBase
             // Broadcast new mission
             await _hubContext.Clients.All.SendAsync("MissionCreated", MissionInfoDto.From(mission));
 
-            return Ok(new MissionPlanResponse
+            return Ok(new MissionPlanResponseDto
             {
                 Success = true,
                 MissionId = mission.Id,
@@ -160,7 +159,7 @@ public class MissionController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "AI mission planning failed: {Description}", request.Description);
-            return StatusCode(500, new ErrorResponse
+            return StatusCode(500, new ErrorResponseDto
             {
                 Error = "Mission planning failed",
                 Details = ex.Message,
@@ -178,12 +177,12 @@ public class MissionController : ControllerBase
     /// POST /api/mission/survey
     /// </summary>
     [HttpPost("survey")]
-    public async Task<ActionResult<MissionPlanResponse>> CreateSurvey([FromBody] SurveyMissionRequest request)
+    public async Task<ActionResult<MissionPlanResponseDto>> CreateSurvey([FromBody] SurveyMissionRequestDto request)
     {
         var drone = _fleet.GetDrone(request.DroneId);
         if (drone == null)
         {
-            return BadRequest(new ErrorResponse { Error = "Drone not found", StatusCode = 400 });
+            return BadRequest(new ErrorResponseDto { Error = "Drone not found", StatusCode = 400 });
         }
 
         // Parse pattern
@@ -227,12 +226,12 @@ public class MissionController : ControllerBase
     /// POST /api/mission/orbit
     /// </summary>
     [HttpPost("orbit")]
-    public async Task<ActionResult<MissionPlanResponse>> CreateOrbit([FromBody] OrbitMissionRequest request)
+    public async Task<ActionResult<MissionPlanResponseDto>> CreateOrbit([FromBody] OrbitMissionRequestDto request)
     {
         var drone = _fleet.GetDrone(request.DroneId);
         if (drone == null)
         {
-            return BadRequest(new ErrorResponse { Error = "Drone not found", StatusCode = 400 });
+            return BadRequest(new ErrorResponseDto { Error = "Drone not found", StatusCode = 400 });
         }
 
         var mission = new OrbitMission
@@ -262,19 +261,19 @@ public class MissionController : ControllerBase
     /// POST /api/mission/patrol
     /// </summary>
     [HttpPost("patrol")]
-    public async Task<ActionResult<MissionPlanResponse>> CreatePatrol([FromBody] PatrolMissionRequest request)
+    public async Task<ActionResult<MissionPlanResponseDto>> CreatePatrol([FromBody] PatrolMissionRequestDto request)
     {
         var drone = _fleet.GetDrone(request.DroneId);
         if (drone == null)
         {
-            return BadRequest(new ErrorResponse { Error = "Drone not found", StatusCode = 400 });
+            return BadRequest(new ErrorResponseDto { Error = "Drone not found", StatusCode = 400 });
         }
 
         var patrolPoints = request.Points.Select(p => new Vector3D(p.X, p.Y, 0)).ToList();
 
         if (patrolPoints.Count < 2)
         {
-            return BadRequest(new ErrorResponse
+            return BadRequest(new ErrorResponseDto     
             {
                 Error = "Patrol requires at least 2 points",
                 StatusCode = 400
@@ -306,12 +305,12 @@ public class MissionController : ControllerBase
     /// POST /api/mission/delivery
     /// </summary>
     [HttpPost("delivery")]
-    public async Task<ActionResult<MissionPlanResponse>> CreateDelivery([FromBody] DeliveryMissionRequest request)
+    public async Task<ActionResult<MissionPlanResponseDto>> CreateDelivery([FromBody] DeliveryMissionRequestDto request)
     {
         var drone = _fleet.GetDrone(request.DroneId);
         if (drone == null)
         {
-            return BadRequest(new ErrorResponse { Error = "Drone not found", StatusCode = 400 });
+            return BadRequest(new ErrorResponseDto { Error = "Drone not found", StatusCode = 400 });
         }
 
         var mission = new DeliveryMission
@@ -345,18 +344,18 @@ public class MissionController : ControllerBase
     /// POST /api/mission/{missionId}/start?droneId=xxx
     /// </summary>
     [HttpPost("{missionId}/start")]
-    public async Task<ActionResult<CommandResponse>> StartMission(string missionId, [FromQuery] string droneId)
+    public async Task<ActionResult<CommandResponseDto>> StartMission(string missionId, [FromQuery] string droneId)
     {
         var drone = _fleet.GetDrone(droneId);
         if (drone == null)
         {
-            return BadRequest(new ErrorResponse { Error = "Drone not found", StatusCode = 400 });
+            return BadRequest(new ErrorResponseDto { Error = "Drone not found", StatusCode = 400 });
         }
 
         var mission = _fleet.GetMission(missionId);
         if (mission == null)
         {
-            return BadRequest(new ErrorResponse { Error = "Mission not found", StatusCode = 400 });
+            return BadRequest(new ErrorResponseDto { Error = "Mission not found", StatusCode = 400 });
         }
 
         // Generate flight path
@@ -391,7 +390,7 @@ public class MissionController : ControllerBase
             await _hubContext.Clients.All.SendAsync("DroneStateUpdated", DroneStateDto.From(drone));
         }
 
-        return Ok(new CommandResponse
+        return Ok(new CommandResponseDto
         {
             Success = success,
             Message = success ? $"Mission {missionId} started" : "Failed to start mission",
@@ -404,17 +403,17 @@ public class MissionController : ControllerBase
     /// POST /api/mission/{missionId}/pause?droneId=xxx
     /// </summary>
     [HttpPost("{missionId}/pause")]
-    public async Task<ActionResult<CommandResponse>> PauseMission(string missionId, [FromQuery] string droneId)
+    public async Task<ActionResult<CommandResponseDto>> PauseMission(string missionId, [FromQuery] string droneId)
     {
         var drone = _fleet.GetDrone(droneId);
         if (drone == null)
         {
-            return BadRequest(new ErrorResponse { Error = "Drone not found", StatusCode = 400 });
+            return BadRequest(new ErrorResponseDto { Error = "Drone not found", StatusCode = 400 });
         }
 
         if (drone.CurrentMissionId != missionId)
         {
-            return BadRequest(new ErrorResponse
+            return BadRequest(new ErrorResponseDto
             {
                 Error = "Drone is not running this mission",
                 StatusCode = 400
@@ -435,7 +434,7 @@ public class MissionController : ControllerBase
 
         await _hubContext.Clients.All.SendAsync("DroneStateUpdated", DroneStateDto.From(drone));
 
-        return Ok(new CommandResponse
+        return Ok(new CommandResponseDto
         {
             Success = true,
             Message = "Mission paused",
@@ -448,17 +447,17 @@ public class MissionController : ControllerBase
     /// POST /api/mission/{missionId}/resume?droneId=xxx
     /// </summary>
     [HttpPost("{missionId}/resume")]
-    public async Task<ActionResult<CommandResponse>> ResumeMission(string missionId, [FromQuery] string droneId)
+    public async Task<ActionResult<CommandResponseDto>> ResumeMission(string missionId, [FromQuery] string droneId)
     {
         var drone = _fleet.GetDrone(droneId);
         if (drone == null)
         {
-            return BadRequest(new ErrorResponse { Error = "Drone not found", StatusCode = 400 });
+            return BadRequest(new ErrorResponseDto { Error = "Drone not found", StatusCode = 400 });
         }
 
         if (drone.CurrentMissionId != missionId)
         {
-            return BadRequest(new ErrorResponse
+            return BadRequest(new ErrorResponseDto
             {
                 Error = "Drone is not running this mission",
                 StatusCode = 400
@@ -479,7 +478,7 @@ public class MissionController : ControllerBase
 
         await _hubContext.Clients.All.SendAsync("DroneStateUpdated", DroneStateDto.From(drone));
 
-        return Ok(new CommandResponse
+        return Ok(new CommandResponseDto
         {
             Success = true,
             Message = "Mission resumed",
@@ -492,12 +491,12 @@ public class MissionController : ControllerBase
     /// POST /api/mission/{missionId}/stop?droneId=xxx
     /// </summary>
     [HttpPost("{missionId}/stop")]
-    public async Task<ActionResult<CommandResponse>> StopMission(string missionId, [FromQuery] string droneId)
+    public async Task<ActionResult<CommandResponseDto>> StopMission(string missionId, [FromQuery] string droneId)
     {
         var drone = _fleet.GetDrone(droneId);
         if (drone == null)
         {
-            return BadRequest(new ErrorResponse { Error = "Drone not found", StatusCode = 400 });
+            return BadRequest(new ErrorResponseDto { Error = "Drone not found", StatusCode = 400 });
         }
 
         drone.CancelMission();
@@ -514,7 +513,7 @@ public class MissionController : ControllerBase
 
         await _hubContext.Clients.All.SendAsync("DroneStateUpdated", DroneStateDto.From(drone));
 
-        return Ok(new CommandResponse
+        return Ok(new CommandResponseDto
         {
             Success = true,
             Message = "Mission stopped",
@@ -527,12 +526,12 @@ public class MissionController : ControllerBase
     /// DELETE /api/mission/{id}
     /// </summary>
     [HttpDelete("{id}")]
-    public async Task<ActionResult<CommandResponse>> Delete(string id)
+    public async Task<ActionResult<CommandResponseDto>> Delete(string id)
     {
         var mission = _fleet.GetMission(id);
         if (mission == null)
         {
-            return NotFound(new ErrorResponse { Error = "Mission not found", StatusCode = 404 });
+            return NotFound(new ErrorResponseDto { Error = "Mission not found", StatusCode = 404 });
         }
 
         _fleet.RemoveMission(id);
@@ -541,7 +540,7 @@ public class MissionController : ControllerBase
 
         await _hubContext.Clients.All.SendAsync("MissionDeleted", id);
 
-        return Ok(new CommandResponse
+        return Ok(new CommandResponseDto
         {
             Success = true,
             Message = $"Mission {id} deleted"
@@ -552,9 +551,9 @@ public class MissionController : ControllerBase
 
     #region Helpers
 
-    private static MissionPlanResponse CreateMissionResponse(DroneMission mission, Core.Animation.FlightPath path)
+    private static MissionPlanResponseDto CreateMissionResponse(DroneMission mission, Core.Flights.FlightPath path)
     {
-        return new MissionPlanResponse
+        return new MissionPlanResponseDto
         {
             Success = true,
             MissionId = mission.Id,

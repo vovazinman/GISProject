@@ -1,7 +1,7 @@
 /**
  * App - Main Application Component
  */
-
+import 'leaflet/dist/leaflet.css';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Dashboard } from './components';
 import { useSignalR } from './hooks';
@@ -13,15 +13,15 @@ const App: React.FC = () => {
   const [flightPath, setFlightPath] = useState<FlightPath | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // SignalR
+  // SignalR - now receives mapped types directly!
   const { isConnected } = useSignalR({
-    onDroneStateUpdated: (state) => {
+    onDroneStateUpdated: (state: DroneState) => {
       console.log('Drone state updated:', state);
-      setDrone(state);
+      setDrone(state);  // ✅ Already correct type
     },
-    onFlightPathUpdated: (path) => {
+    onFlightPathUpdated: (path: FlightPath) => {
       console.log('Flight path updated:', path);
-      setFlightPath(path);
+      setFlightPath(path);  // ✅ Already correct type
     },
     onAlertReceived: (alert) => {
       console.log('Alert:', alert);

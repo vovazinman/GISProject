@@ -1,11 +1,13 @@
-﻿using GIS3DEngine.Core.Primitives;
+﻿using GIS3DEngine.Application.Interfaces;
+using GIS3DEngine.Application.Services;
+using GIS3DEngine.Core.Primitives;
 using GIS3DEngine.Drones.AI;
 using GIS3DEngine.Drones.Core;
 using GIS3DEngine.Drones.Fleet;
 using GIS3DEngine.Drones.Missions;
 using GIS3DEngine.Services.MissionPlanning;
-using GIS3DEngine.WebApi.Dtos;
 using GIS3DEngine.WebApi.Hubs;
+using GIS3DEngine.WebApi.Services;
 using Microsoft.AspNetCore.SignalR;
 using Serilog;
 using System.Text.Json.Serialization;
@@ -68,6 +70,16 @@ builder.Services.AddCors(options =>
     });
 });
 
+// ========== Domain Services ==========
+builder.Services.AddSingleton<DroneFleetManager>();
+
+// ========== Application Services ========== 🆕
+builder.Services.AddScoped<IDroneService, DroneService>();
+builder.Services.AddScoped<IMissionService, MissionService>();
+builder.Services.AddScoped<INotificationService, SignalRNotificationService>();
+builder.Services.AddScoped<IMissionPlanner, AiMissionPlannerAdapter>();
+
+
 // Application services
 builder.Services.AddSignalR();
 builder.Services.AddControllers();
@@ -78,7 +90,17 @@ builder.Services.AddSingleton<MissionPlanner>(sp =>
     var apiKey = config["Anthropic:ApiKey"] ?? "";
     return new MissionPlanner(apiKey);
 });
-builder.Services.AddScoped<IMissionPlanner, AiMissionPlannerAdapter>();
+
+// ========== CORS ==========
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 // ========== Build Application ==========
 
@@ -92,7 +114,7 @@ fleet.CreateDrone(
     specs: null,
     position: new Vector3D(0, 0, 0)
 );
-Console.WriteLine("✅ Default drone 'drone-1' created");
+Console.WriteLine(" Default drone 'drone-1' created");
 
 // ========== Simulation Loop ==========
 
@@ -129,7 +151,7 @@ simulationTimer.Elapsed += async (sender, e) =>
 
 simulationTimer.AutoReset = true;
 simulationTimer.Start();
-Console.WriteLine("🔄 Simulation loop started (10 updates/sec)");
+Console.WriteLine(" Simulation loop started (10 updates/sec)");
 
 // ========== Middleware Pipeline ==========
 
@@ -155,11 +177,11 @@ app.MapHub<DroneHub>("/droneHub");
 // ========== Startup Information ==========
 
 Console.WriteLine("========================================");
-Console.WriteLine("🚁 Drone Control API Started!");
+Console.WriteLine(" Drone Control API Started!");
 Console.WriteLine("========================================");
-Console.WriteLine("🌐 API:        http://localhost:5000/api");
-Console.WriteLine("📖 Swagger:    http://localhost:5000/swagger");
-Console.WriteLine("📡 SignalR:    http://localhost:5000/droneHub");
+Console.WriteLine(" API:        http://localhost:5000/api");
+Console.WriteLine(" Swagger:    http://localhost:5000/swagger");
+Console.WriteLine(" SignalR:    http://localhost:5000/droneHub");
 Console.WriteLine("========================================");
 
 // 🆕 Aspire endpoints

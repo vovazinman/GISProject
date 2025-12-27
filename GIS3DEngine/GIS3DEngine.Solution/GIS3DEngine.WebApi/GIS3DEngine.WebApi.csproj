@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\GIS3DEngine.Application\GIS3DEngine.Application.csproj" />
     <ProjectReference Include="..\GIS3DEngine.Drones\GIS3DEngine.Drones.csproj" />
     <ProjectReference Include="..\GIS3DEngine.ServiceDefaults\GIS3DEngine.ServiceDefaults.csproj" />
     <ProjectReference Include="..\src\GIS3DEngine.Core\GIS3DEngine.Core.csproj" />
