@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSignalR, DroneStateDto, FlightPathUpdate, Alert } from './useSignalR';
+import { useSignalR, DroneStateDto, FlightPathDto, Alert } from './useSignalR';
 
 // Coordinate conversion
 const ORIGIN_LAT = 32.0853;
@@ -54,8 +54,10 @@ export const useDroneRealtime = (droneId: string) => {
         altitude: state.position.z
       },
       status: state.status,
-      speed: state.speed,
-      heading: state.heading,
+      speed: state.groundSpeed ?? 0,        
+      heading: state.velocity?.x !== undefined 
+        ? Math.atan2(state.velocity.y, state.velocity.x) * 180 / Math.PI 
+        : 0,                                 
       batteryPercent: state.batteryPercent,
       isArmed: state.isArmed,
       flightMode: state.flightMode
@@ -63,18 +65,18 @@ export const useDroneRealtime = (droneId: string) => {
   }, [droneId]);
 
   // Convert flight path waypoints
-  const handleFlightPathUpdated = useCallback((path: FlightPathUpdate) => {
+  const handleFlightPathUpdated = useCallback((path: FlightPathDto) => { 
     if (path.droneId !== droneId) return;
 
-    const waypoints = path.waypoints.map(wp => {
-      const pos = localToLatLng(wp.x, wp.y);
-      return { lat: pos.lat, lng: pos.lng, altitude: wp.z };
+    const waypoints = path.waypoints.map((wp: { position: { x: number; y: number; z: number } }) => {  // ✅ תוקן
+      const pos = localToLatLng(wp.position.x, wp.position.y);
+      return { lat: pos.lat, lng: pos.lng, altitude: wp.position.z };
     });
 
     setFlightPath({
       waypoints,
-      distance: path.distance,
-      eta: path.eta
+      distance: path.distance ?? path.totalDistance,
+      eta: path.eta ?? path.totalDuration
     });
   }, [droneId]);
 
@@ -82,7 +84,7 @@ export const useDroneRealtime = (droneId: string) => {
   const handleAlertReceived = useCallback((alert: Alert) => {
     if (alert.droneId !== droneId) return;
     
-    setAlerts(prev => [alert, ...prev].slice(0, 10)); // Keep last 10
+    setAlerts(prev => [alert, ...prev].slice(0, 10));
   }, [droneId]);
 
   const { 
@@ -110,25 +112,18 @@ export const useDroneRealtime = (droneId: string) => {
     };
   }, [isConnected, droneId, subscribeToDrone, unsubscribeFromDrone]);
 
-  // Clear latest alert
+  // Clear alerts
   const clearAlerts = useCallback(() => {
     setAlerts([]);
   }, []);
 
   return {
-    // Connection
     isConnected,
     connectionState,
     connectionError: error,
-    
-    // Drone data
     droneState,
     position: droneState?.position ?? null,
-    
-    // Flight
     flightPath,
-    
-    // Alerts
     alerts,
     latestAlert: alerts[0] ?? null,
     clearAlerts

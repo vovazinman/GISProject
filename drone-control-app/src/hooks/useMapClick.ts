@@ -51,6 +51,8 @@ export const useMapClick = (droneId: string, defaultAltitude: number = 30) => {
     speed: number = 15,
     mode: FlightMode = 'Safe'
   ): Promise<GoToResult | null> => {
+    console.log('🚀 flyTo called:', { droneId, lat, lng, altitude, speed, mode });
+    
     setIsFlying(true);
     setError(null);
     setDestination({ lat, lng });

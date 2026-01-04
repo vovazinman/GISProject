@@ -5,6 +5,7 @@ using GIS3DEngine.Core.Geometry;
 using GIS3DEngine.Core.Animation;
 using GIS3DEngine.Core.Spatial;
 using GIS3DEngine.Services;
+using GIS3DEngine.Core.Flights;
 
 namespace GIS3DEngine.Tests;
 

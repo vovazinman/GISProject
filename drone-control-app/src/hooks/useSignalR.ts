@@ -95,7 +95,7 @@ interface UseSignalROptions {
 
 export const useSignalR = (options: UseSignalROptions = {}) => {
   const {
-    hubUrl = '/droneHub',
+    hubUrl = 'http://localhost:5000/droneHub',
     autoConnect = true,
     onDroneStateUpdated,
     onFlightPathUpdated,

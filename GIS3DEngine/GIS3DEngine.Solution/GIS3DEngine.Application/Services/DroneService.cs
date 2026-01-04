@@ -216,11 +216,11 @@ public class DroneService : IDroneService
         // Create flight path based on mode
         var path = request.Mode switch
         {
-            FlightMode.Safe => FlightPath.CreateSafe(currentPos, target, request.Speed),
+            "safe" => FlightPath.CreateSafe(currentPos, target, request.Speed),
             _ => FlightPath.CreateDirect(currentPos, target, request.Speed)
         };
 
-        var success = drone.GoTo(target, request.Speed, path);
+        var success = drone.GoTo(target, request.Speed, path); 
 
         if (!success)
             return CommandResultDto.BadRequest("Cannot execute goto in current state");

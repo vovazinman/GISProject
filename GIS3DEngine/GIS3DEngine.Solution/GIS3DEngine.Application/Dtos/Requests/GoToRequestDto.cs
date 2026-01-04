@@ -12,10 +12,10 @@ namespace GIS3DEngine.Application.Dtos.Requests
     /// </summary>
     public record GoToRequestDto
     {
-        public double X { get; init; }
-        public double Y { get; init; }
-        public double Z { get; init; }
-        public double Speed { get; init; } = 15;
-        public FlightMode Mode { get; init; } = FlightMode.Direct;
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double Z { get; set; }
+        public double Speed { get; set; } = 15;
+        public string? Mode { get; set; } = "Direct";  // "Direct" || "Safe"
     }
 }

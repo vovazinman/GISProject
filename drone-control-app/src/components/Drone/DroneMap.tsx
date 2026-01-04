@@ -51,10 +51,14 @@ function FollowDrone({ position, follow }: { position: { lat: number; lng: numbe
   return null;
 }
 
-// Map click handler
+// Map click handler - SIMPLE VERSION
 function ClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) {
+  debugger; 
+
   useMapEvents({
     click: (e) => {
+       debugger;
+      console.log('👆 CLICK!', e.latlng);
       onMapClick(e.latlng.lat, e.latlng.lng);
     }
   });
@@ -96,12 +100,14 @@ export function DroneMap({ droneId, initialPosition }: Props) {
     : initialPosition ?? { lat: 32.0853, lng: 34.7818 };
 
   const handleMapClick = async (lat: number, lng: number) => {
-    setFollowDrone(false); // Stop following when user clicks
-    const result = await flyTo(lat, lng, altitude, speed, mode);
-    if (result) {
-      console.log('Flying to:', result);
-    }
-  };
+  console.log('🎯 handleMapClick called!', { lat, lng });  // ← הוסף
+  setFollowDrone(false);
+  const result = await flyTo(lat, lng, altitude, speed, mode);
+  console.log('✈️ Fly result:', result);
+  if (result) {
+    console.log('Flying to:', result);
+  }
+};
 
   // Build flight path for display
   const displayPath: [number, number][] = realtimePath 

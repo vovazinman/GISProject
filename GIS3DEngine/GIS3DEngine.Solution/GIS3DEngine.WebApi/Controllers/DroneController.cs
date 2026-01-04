@@ -182,22 +182,78 @@ public class DroneController : ControllerBase
     /// POST /api/drone/{id}/goto
     /// </summary>
     [HttpPost("{id}/goto")]
-    public async Task<ActionResult<CommandResponseDto>> GoTo(string id, [FromBody] GoToRequestDto request)
+    public async Task<ActionResult<object>> GoTo(string id, [FromBody] GoToRequestDto request)
     {
         var drone = _fleet.GetDrone(id);
         if (drone == null)
             return NotFound(new ErrorResponseDto { Error = "Drone not found", StatusCode = 404 });
 
+        // Validation
+        if (request.Z < 0 || request.Z > 500)
+            return BadRequest(new ErrorResponseDto { Error = "Altitude must be between 0 and 500", StatusCode = 400 });
+
         var target = new Vector3D(request.X, request.Y, request.Z);
-        var success = drone.GoTo(target, request.Speed);
+        var currentPos = drone.State.Position;
+
+        // Calculate distance and ETA
+        var distance = Vector3D.Distance(currentPos, target);
+        var speed = request.Speed > 0 ? request.Speed : 15;
+        var eta = distance / speed;
+
+        // Create flight path based on mode
+        FlightPath path;
+        if (request.Mode?.ToLower() == "safe")
+        {
+            path = FlightPath.CreateSafe(currentPos, target, speed);
+        }
+        else
+        {
+            path = FlightPath.CreateDirect(currentPos, target, speed);
+        }
+
+        // Auto arm and takeoff if needed
+        if (!drone.State.IsArmed)
+            drone.Arm();
+
+        if (drone.State.Status == DroneStatus.Ready ||
+            drone.State.Status == DroneStatus.Landed)
+        {
+            drone.Takeoff(Math.Max(target.Z, 10));
+            // Wait a bit for takeoff (in real scenario this would be async)
+        }
+
+        var success = drone.GoTo(target, speed, path);
+
+        if (success)
+        {
+            _logger.LogInformation(
+                "Drone {DroneId} flying to ({X}, {Y}, {Z}) Mode={Mode} Distance={Dist:F0}m ETA={ETA:F0}s",
+                id, request.X, request.Y, request.Z, request.Mode ?? "Direct", distance, eta);
+        }
 
         await BroadcastDroneState(drone);
 
-        return Ok(new CommandResponseDto
+        // Broadcast flight path
+        await _hubContext.Clients.All.SendAsync("FlightPathUpdated", new
         {
-            Success = success,
-            Message = success ? $"Flying to ({request.X}, {request.Y}, {request.Z})" : "Failed to navigate",
-            NewState = DroneStateDto.From(drone)
+            droneId = id,
+            waypoints = path.Waypoints.Select(w => new { x = w.Position.X, y = w.Position.Y, z = w.Position.Z }),
+            totalDistance = path.TotalDistance,
+            totalDuration = path.TotalDuration,
+            distance = distance,
+            eta = eta
+        });
+
+        // Return response matching frontend expectations
+        return Ok(new
+        {
+            success = success,
+            droneId = id,
+            destination = new { x = request.X, y = request.Y, z = request.Z },
+            distance = distance,
+            eta = eta,
+            mode = request.Mode ?? "Direct",
+            message = success ? $"Flying to destination. ETA: {eta:F0}s" : "Failed to navigate"
         });
     }
 
