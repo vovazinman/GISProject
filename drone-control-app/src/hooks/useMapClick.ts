@@ -1,9 +1,5 @@
 import { useCallback, useState } from 'react';
 
-// Origin point - adjust to your simulation area
-const ORIGIN_LAT = 32.0853;  // Tel Aviv
-const ORIGIN_LNG = 34.7818;
-
 // Conversion constants
 const METERS_PER_DEG_LAT = 111320;
 const metersPerDegLng = (lat: number) => 111320 * Math.cos(lat * Math.PI / 180);
@@ -25,23 +21,31 @@ export interface Destination {
   lng: number;
 }
 
-export const useMapClick = (droneId: string, defaultAltitude: number = 30) => {
+export const useMapClick = (
+  droneId: string, 
+  defaultAltitude: number = 30, 
+  origin: { lat: number; lng: number } ={lat: 32.0853, lng: 34.7818}
+  ) => {
   const [isFlying, setIsFlying] = useState(false);
   const [destination, setDestination] = useState<Destination | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<GoToResult | null>(null);
 
-  // Convert lat/lng to local XY coordinates (meters)
-  const latLngToLocal = useCallback((lat: number, lng: number) => ({
-    x: (lng - ORIGIN_LNG) * metersPerDegLng(ORIGIN_LAT),
-    y: (lat - ORIGIN_LAT) * METERS_PER_DEG_LAT
-  }), []);
+  // ✅ Convert lat/lng to local XY coordinates using the provided origin
+  const latLngToLocal = useCallback((lat: number, lng: number) => {
+    console.log('🔄 latLngToLocal:', { lat, lng, origin });
+    return {
+      x: (lng - origin.lng) * metersPerDegLng(origin.lat),
+      y: (lat - origin.lat) * METERS_PER_DEG_LAT
+    };
+  }, [origin.lat, origin.lng]);
 
-  // Convert local XY (meters) to lat/lng
-  const localToLatLng = useCallback((x: number, y: number) => ({
-    lat: ORIGIN_LAT + y / METERS_PER_DEG_LAT,
-    lng: ORIGIN_LNG + x / metersPerDegLng(ORIGIN_LAT)
-  }), []);
+  // Convert lat/lng to local XY coordinates (meters)
+   const localToLatLng = useCallback((x: number, y: number) => ({
+    lat: origin.lat + y / METERS_PER_DEG_LAT,
+    lng: origin.lng + x / metersPerDegLng(origin.lat)
+  }), [origin.lat, origin.lng]);
+ 
 
   // Fly to a location
   const flyTo = useCallback(async (

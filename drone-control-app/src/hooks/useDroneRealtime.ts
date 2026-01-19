@@ -2,15 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSignalR, DroneStateDto, FlightPathDto, Alert } from './useSignalR';
 
 // Coordinate conversion
-const ORIGIN_LAT = 32.0853;
-const ORIGIN_LNG = 34.7818;
 const METERS_PER_DEG_LAT = 111320;
 const metersPerDegLng = (lat: number) => 111320 * Math.cos(lat * Math.PI / 180);
-
-const localToLatLng = (x: number, y: number) => ({
-  lat: ORIGIN_LAT + y / METERS_PER_DEG_LAT,
-  lng: ORIGIN_LNG + x / metersPerDegLng(ORIGIN_LAT)
-});
 
 export interface DronePosition {
   lat: number;
@@ -35,10 +28,19 @@ export interface FlightPathData {
   eta: number;
 }
 
-export const useDroneRealtime = (droneId: string) => {
+export const useDroneRealtime = (
+  droneId: string, 
+  origin: { lat: number; lng: number } = { lat: 32.0853, lng: 34.7818 }
+  ) => {
   const [droneState, setDroneState] = useState<DroneRealtimeState | null>(null);
   const [flightPath, setFlightPath] = useState<FlightPathData | null>(null);
   const [alerts, setAlerts] = useState<Alert[]>([]);
+
+  // Convert local XY (meters) to lat/lng using origin
+  const localToLatLng = useCallback((x: number, y: number) => ({
+    lat: origin.lat + y / METERS_PER_DEG_LAT,
+    lng: origin.lng + x / metersPerDegLng(origin.lat)
+  }), [origin.lat, origin.lng]);
 
   // Convert backend state to frontend format
   const handleDroneStateUpdated = useCallback((state: DroneStateDto) => {
@@ -62,7 +64,7 @@ export const useDroneRealtime = (droneId: string) => {
       isArmed: state.isArmed,
       flightMode: state.flightMode
     });
-  }, [droneId]);
+  }, [droneId, localToLatLng]);
 
   // Convert flight path waypoints
   const handleFlightPathUpdated = useCallback((path: FlightPathDto) => { 
@@ -78,7 +80,7 @@ export const useDroneRealtime = (droneId: string) => {
       distance: path.distance ?? path.totalDistance,
       eta: path.eta ?? path.totalDuration
     });
-  }, [droneId]);
+  }, [droneId, localToLatLng]);
 
   // Handle alerts
   const handleAlertReceived = useCallback((alert: Alert) => {

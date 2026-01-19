@@ -1,1 +1,1 @@
-export { DroneMap } from './DroneMap';
+export { DroneMap } from './../Drone/DroneMap';

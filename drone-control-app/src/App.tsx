@@ -9,8 +9,7 @@ import { droneApi } from './services/api';
 import type { DroneState, FlightPath, ChatResponse } from './types';
 
 const App: React.FC = () => {
-  const [drone, setDrone] = useState<DroneState | null>(null);
-  const [flightPath, setFlightPath] = useState<FlightPath | null>(null);
+  const [drone, setDrone] = useState<DroneState | null>(null);  
   const [error, setError] = useState<string | null>(null);
 
   // SignalR - now receives mapped types directly!
@@ -20,8 +19,7 @@ const App: React.FC = () => {
       setDrone(state);  // ✅ Already correct type
     },
     onFlightPathUpdated: (path: FlightPath) => {
-      console.log('Flight path updated:', path);
-      setFlightPath(path);  // ✅ Already correct type
+      console.log('Flight path updated:', path);  
     },
     onAlertReceived: (alert) => {
       console.log('Alert:', alert);
@@ -73,7 +71,6 @@ const App: React.FC = () => {
   return (
     <Dashboard
       drone={drone}
-      flightPath={flightPath}
       isConnected={isConnected}
       onCommandExecuted={handleCommandExecuted}
     />

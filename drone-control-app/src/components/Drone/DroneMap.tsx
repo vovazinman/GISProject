@@ -8,13 +8,14 @@ import { useDroneRealtime } from '../../hooks/useDroneRealtime';
 
 // Rotatable drone icon
 const createDroneIcon = (heading: number = 0) => L.divIcon({
-  className: '',
+  className: 'drone-icon',
   html: `
-    <div style="transform: rotate(${heading}deg); width: 32px; height: 32px;">
-      <img src="https://cdn-icons-png.flaticon.com/512/2169/2169325.png" 
-           width="32" height="32" 
-           style="filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));"/>
-    </div>
+    <div style="
+      transform: rotate(${heading}deg); 
+      font-size: 28px;
+      line-height: 1;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    ">🚁</div>
   `,
   iconSize: [32, 32],
   iconAnchor: [16, 16],
@@ -22,8 +23,15 @@ const createDroneIcon = (heading: number = 0) => L.divIcon({
 });
 
 // Destination marker icon
-const destinationIcon = new L.Icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+const destinationIcon = L.divIcon({
+  className: 'destination-icon',
+  html: `
+    <div style="
+      font-size: 28px;
+      line-height: 1;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    ">📍</div>
+  `,
   iconSize: [32, 32],
   iconAnchor: [16, 32],
   popupAnchor: [0, -32]
@@ -53,11 +61,9 @@ function FollowDrone({ position, follow }: { position: { lat: number; lng: numbe
 
 // Map click handler - SIMPLE VERSION
 function ClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) {
-  debugger; 
-
+ 
   useMapEvents({
     click: (e) => {
-       debugger;
       console.log('👆 CLICK!', e.latlng);
       onMapClick(e.latlng.lat, e.latlng.lng);
     }
@@ -74,6 +80,44 @@ export function DroneMap({ droneId, initialPosition }: Props) {
   const [mode, setMode] = useState<FlightMode>('Safe');
   const [followDrone, setFollowDrone] = useState(true);
 
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
+  const [geolocationFailed, setGeolocationFailed] = useState(false);
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      console.warn('Geolocation not supported');
+      setGeolocationFailed(true);      
+      setIsLoadingLocation(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const loc = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        console.log('📍 User location:', loc);
+        setUserLocation(loc);
+        setIsLoadingLocation(false);
+      },
+      (error) => {
+        console.warn('⚠️ Geolocation error:', error.message);        
+        setGeolocationFailed(true);
+        setIsLoadingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, []);
+
+  const origin = userLocation ?? (geolocationFailed ? initialPosition : null) ?? { lat: 32.0853, lng: 34.7818 };
+
+  console.log('🌍 ORIGIN CALCULATION:');
+  console.log('  userLocation:', userLocation);
+  console.log('  initialPosition:', initialPosition);
+  console.log('  → Final origin:', origin);  
+
   // Real-time data from SignalR
   const { 
     isConnected,
@@ -82,7 +126,11 @@ export function DroneMap({ droneId, initialPosition }: Props) {
     flightPath: realtimePath,
     latestAlert,
     clearAlerts
-  } = useDroneRealtime(droneId);
+  } = useDroneRealtime(droneId, origin);
+
+  console.log('🚁 DRONE POSITION:');
+  console.log('  realtimePosition:', realtimePosition);
+  console.log('  origin:', origin);
 
   // Map click hook
   const { 
@@ -92,22 +140,25 @@ export function DroneMap({ droneId, initialPosition }: Props) {
     destination, 
     error, 
     lastResult 
-  } = useMapClick(droneId, altitude);
+  } = useMapClick(droneId, altitude, origin);
 
   // Use realtime position or initial position
   const dronePosition = realtimePosition 
     ? { lat: realtimePosition.lat, lng: realtimePosition.lng }
-    : initialPosition ?? { lat: 32.0853, lng: 34.7818 };
+    : origin;
 
-  const handleMapClick = async (lat: number, lng: number) => {
-  console.log('🎯 handleMapClick called!', { lat, lng });  // ← הוסף
-  setFollowDrone(false);
-  const result = await flyTo(lat, lng, altitude, speed, mode);
-  console.log('✈️ Fly result:', result);
-  if (result) {
-    console.log('Flying to:', result);
-  }
-};
+  const handleMapClick = async (lat: number, lng: number) => { 
+    console.log('🎯 handleMapClick called!', { lat, lng, altitude, speed, mode });  
+    console.log('🚁 Current drone position:', dronePosition);
+    setFollowDrone(false);
+
+    const result = await flyTo(lat, lng, altitude, speed, mode);
+    console.log('✈️ Fly result:', result);
+
+    if (result) {
+      console.log('Flying to:', result);
+    }
+  };
 
   // Build flight path for display
   const displayPath: [number, number][] = realtimePath 
@@ -115,6 +166,19 @@ export function DroneMap({ droneId, initialPosition }: Props) {
     : destination 
       ? [[dronePosition.lat, dronePosition.lng], [destination.lat, destination.lng]]
       : [];
+
+  if (isLoadingLocation) {
+    return (
+      <div style={{ 
+        height: '100%', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center' 
+      }}>
+        📍 Getting location...
+      </div>
+    );
+  }
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -225,7 +289,7 @@ export function DroneMap({ droneId, initialPosition }: Props) {
 
       {/* Map */}
       <MapContainer 
-        center={[dronePosition.lat, dronePosition.lng]} 
+        center={[origin.lat, origin.lng]} 
         zoom={17} 
         style={{ flex: 1, minHeight: '400px' }}
       >
@@ -244,6 +308,8 @@ export function DroneMap({ droneId, initialPosition }: Props) {
         >
           <Popup>
             <strong>🚁 {droneId}</strong><br/>
+            <strong style={{ color: '#3b82f6' }}>📍 Lat: {dronePosition.lat.toFixed(6)}</strong><br/>
+            <strong style={{ color: '#3b82f6' }}>📍 Lng: {dronePosition.lng.toFixed(6)}</strong><br/>
             Status: {droneState?.status ?? 'Unknown'}<br/>
             Battery: {droneState?.batteryPercent?.toFixed(0) ?? '--'}%<br/>
             Altitude: {droneState?.position?.altitude?.toFixed(1) ?? '--'}m

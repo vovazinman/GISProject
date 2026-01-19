@@ -3,21 +3,19 @@
  */
 
 import React from 'react';
-import { DroneMap } from '../Map';
+import { DroneMap } from '../Drone/DroneMap';
 import { DroneStatus, ControlButtons } from '../Drone';
 import { ChatPanel } from '../Chat';
-import type { DroneState, FlightPath, ChatResponse } from '../../types';
+import type { DroneState, ChatResponse } from '../../types';
 
 interface DashboardProps {
-  drone: DroneState | null;
-  flightPath?: FlightPath | null;
+  drone: DroneState | null; 
   isConnected: boolean;
   onCommandExecuted?: (response: ChatResponse) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
-  drone, 
-  flightPath, 
+  drone,   
   isConnected,
   onCommandExecuted 
 }) => {
@@ -40,7 +38,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <main className="dashboard-main">
         {/* Map */}
         <section className="map-section">
-          <DroneMap drone={drone} flightPath={flightPath} />
+          <DroneMap 
+                droneId={drone?.droneId ?? 'drone-1'} 
+                initialPosition={drone?.position ? 
+                  {
+                    lat: 32.0853 + (drone.position.y / 111320),
+                    lng: 34.7818 + (drone.position.x / (111320 * Math.cos(32.0853 * Math.PI / 180)))
+                    } : undefined}
+/>
         </section>
 
         {/* Side Panel */}
