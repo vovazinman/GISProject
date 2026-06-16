@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Drone System - Complete Data Flow Architecture</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow-x: auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+        
+        .flow-diagram {
+            position: relative;
+            min-width: 1800px;
+            height: 1200px;
+            background: #f7fafc;
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 40px;
+        }
+        
+        /* Layer Boxes */
+        .layer {
+            position: absolute;
+            border: 3px solid;
+            border-radius: 15px;
+            padding: 20px;
+            background: white;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .layer:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+        
+        .layer-title {
+            font-weight: bold;
+            font-size: 1.3em;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid;
+        }
+        
+        .layer-content {
+            font-size: 0.85em;
+            color: #4a5568;
+            line-height: 1.6;
+        }
+        
+        .layer-tech {
+            margin-top: 12px;
+            padding: 8px;
+            background: #f7fafc;
+            border-radius: 5px;
+            font-size: 0.75em;
+            color: #718096;
+            font-weight: 600;
+        }
+        
+        .data-detail {
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 0.75em;
+            font-family: 'Courier New', monospace;
+            line-height: 1.5;
+        }
+        
+        .data-title {
+            font-weight: bold;
+            color: #78350f;
+            margin-bottom: 6px;
+        }
+        
+        /* Specific Layers */
+        .frontend {
+            left: 40px;
+            top: 350px;
+            width: 240px;
+            border-color: #3b82f6;
+        }
+        .frontend .layer-title { color: #3b82f6; border-color: #3b82f6; }
+        
+        .api-gateway {
+            left: 330px;
+            top: 350px;
+            width: 240px;
+            border-color: #10b981;
+        }
+        .api-gateway .layer-title { color: #10b981; border-color: #10b981; }
+        
+        .backend {
+            left: 620px;
+            top: 250px;
+            width: 260px;
+            height: 400px;
+            border-color: #8b5cf6;
+        }
+        .backend .layer-title { color: #8b5cf6; border-color: #8b5cf6; }
+        
+        .redis {
+            left: 930px;
+            top: 50px;
+            width: 280px;
+            height: 300px;
+            border-color: #f59e0b;
+        }
+        .redis .layer-title { color: #f59e0b; border-color: #f59e0b; }
+        
+        .postgres {
+            left: 1260px;
+            top: 250px;
+            width: 300px;
+            height: 400px;
+            border-color: #ef4444;
+        }
+        .postgres .layer-title { color: #ef4444; border-color: #ef4444; }
+        
+        .elasticsearch {
+            left: 1260px;
+            top: 700px;
+            width: 300px;
+            border-color: #06b6d4;
+        }
+        .elasticsearch .layer-title { color: #06b6d4; border-color: #06b6d4; }
+        
+        .signalr {
+            left: 330px;
+            top: 700px;
+            width: 240px;
+            border-color: #ec4899;
+        }
+        .signalr .layer-title { color: #ec4899; border-color: #ec4899; }
+        
+        .external {
+            left: 930px;
+            top: 700px;
+            width: 280px;
+            border-color: #a855f7;
+        }
+        .external .layer-title { color: #a855f7; border-color: #a855f7; }
+        
+        /* Arrow Styles */
+        .arrow-line {
+            stroke-width: 3;
+            fill: none;
+            stroke-dasharray: 8, 4;
+            animation: dash 20s linear infinite;
+        }
+        
+        @keyframes dash {
+            to { stroke-dashoffset: -1000; }
+        }
+        
+        .arrow-solid {
+            stroke-width: 3;
+            fill: none;
+        }
+        
+        /* Flow Labels */
+        .flow-label {
+            position: absolute;
+            background: white;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            font-weight: 700;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+            border: 2px solid;
+            white-space: nowrap;
+            z-index: 5;
+        }
+        
+        .step-badge {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-right: 6px;
+        }
+        
+        /* Color Coding */
+        .http-req { color: #3b82f6; border-color: #3b82f6; }
+        .cache-op { color: #f59e0b; border-color: #f59e0b; }
+        .db-op { color: #ef4444; border-color: #ef4444; }
+        .search-op { color: #06b6d4; border-color: #06b6d4; }
+        .realtime-op { color: #ec4899; border-color: #ec4899; }
+        .external-op { color: #a855f7; border-color: #a855f7; }
+        
+        /* Legend */
+        .legend {
+            background: white;
+            border: 3px solid #e2e8f0;
+            border-radius: 15px;
+            padding: 25px;
+            display: inline-block;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .legend-title {
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #2d3748;
+            font-size: 1.2em;
+        }
+        
+        .legend-items {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+        
+        .legend-line {
+            width: 50px;
+            height: 4px;
+            border-radius: 2px;
+        }
+        
+        /* Scenario boxes at bottom */
+        .scenarios {
+            margin-top: 40px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        
+        .scenario-box {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 3px solid #0284c7;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .scenario-title {
+            font-weight: bold;
+            color: #0c4a6e;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .scenario-steps {
+            font-size: 0.85em;
+            line-height: 1.8;
+            color: #0369a1;
+        }
+        
+        .step-num {
+            display: inline-block;
+            width: 22px;
+            height: 22px;
+            background: #0284c7;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 22px;
+            font-weight: bold;
+            font-size: 0.85em;
+            margin-right: 6px;
+        }
+        
+        .code-snippet {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75em;
+            margin-top: 8px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Multi-Drone System - Complete Data Flow Architecture</h1>
+        <p class="subtitle">Detailed View: Redis Keys • PostgreSQL Tables • Elasticsearch Indices</p>
+        
+        <div class="flow-diagram">
+            <!-- Frontend -->
+            <div class="layer frontend">
+                <div class="layer-title">🎨 Frontend</div>
+                <div class="layer-content">
+                    <strong>React + TypeScript</strong><br><br>
+                    
+                    <strong>Components:</strong><br>
+                    • Map (Leaflet.js)<br>
+                    • Alert Dashboard<br>
+                    • Telemetry Charts<br>
+                    • Search Interface<br><br>
+                    
+                    <strong>State Management:</strong><br>
+                    • useState/useEffect<br>
+                    • SignalR connection<br>
+                    • Real-time updates
+                </div>
+                <div class="layer-tech">📦 React 18, Leaflet, Axios</div>
+            </div>
+            
+            <!-- API Gateway -->
+            <div class="layer api-gateway">
+                <div class="layer-title">🚪 API Gateway</div>
+                <div class="layer-content">
+                    <strong>REST Endpoints</strong><br><br>
+                    
+                    POST /api/drone/{id}/goto<br>
+                    GET /api/drones<br>
+                    POST /api/alerts/ack<br>
+                    GET /api/search<br>
+                    GET /api/telemetry<br><br>
+                    
+                    <strong>Middleware:</strong><br>
+                    • JWT Authentication<br>
+                    • Rate Limiting<br>
+                    • Request Logging
+                </div>
+                <div class="layer-tech">⚙️ ASP.NET Core Controllers</div>
+            </div>
+            
+            <!-- Backend Services -->
+            <div class="layer backend">
+                <div class="layer-title">⚙️ Backend Services</div>
+                <div class="layer-content">
+                    <strong>Fleet Manager</strong><br>
+                    Multi-drone orchestration<br><br>
+                    
+                    <strong>Simulation Engine</strong><br>
+                    Physics tick: 100ms<br>
+                    Battery drain calc<br><br>
+                    
+                    <strong>Alert Manager</strong><br>
+                    Rule engine<br>
+                    Priority queue<br><br>
+                    
+                    <strong>Weather Service</strong><br>
+                    External API integration<br><br>
+                    
+                    <strong>Cache Service</strong><br>
+                    Redis operations<br><br>
+                    
+                    <strong>Search Service</strong><br>
+                    Elasticsearch queries
+                </div>
+                <div class="layer-tech">🔧 .NET Core 8, DI</div>
+            </div>
+            
+            <!-- Redis Cache -->
+            <div class="layer redis">
+                <div class="layer-title">⚡ Redis Cache</div>
+                <div class="layer-content">
+                    <strong>In-Memory Cache</strong><br>
+                    Sub-millisecond reads<br>
+                </div>
+                
+                <div class="data-detail">
+                    <div class="data-title">🔑 Keys Stored:</div>
+                    drone:{id}:state<br>
+                    <span style="color: #64748b;">→ Drone state (TTL: 5s)</span><br><br>
+                    
+                    drone:{id}:alerts:count<br>
+                    <span style="color: #64748b;">→ Active alerts (TTL: 60s)</span><br><br>
+                    
+                    drone:{id}:alerts:recent<br>
+                    <span style="color: #64748b;">→ Sorted Set (last 50)</span><br><br>
+                    
+                    drone:{id}:telemetry<br>
+                    <span style="color: #64748b;">→ List (last 100 points)</span><br><br>
+                    
+                    drone:{id}:commands<br>
+                    <span style="color: #64748b;">→ Command history</span>
+                </div>
+                
+                <div class="layer-tech">🚀 Redis 7.0, StackExchange</div>
+            </div>
+            
+            <!-- PostgreSQL -->
+            <div class="layer postgres">
+                <div class="layer-title">💾 PostgreSQL</div>
+                <div class="layer-content">
+                    <strong>Primary Database</strong><br>
+                    ACID Transactions<br>
+                </div>
+                
+                <div class="data-detail">
+                    <div class="data-title">📋 Tables:</div>
+                    <strong>Drones</strong><br>
+                    • Master data<br>
+                    • Current status<br>
+                    • Battery, position<br><br>
+                    
+                    <strong>DroneEvents</strong><br>
+                    • All alerts/events<br>
+                    • Permanent storage<br>
+                    • Indexed by timestamp<br><br>
+                    
+                    <strong>DroneTelemetry</strong><br>
+                    • 1 point per second<br>
+                    • Partitioned by month<br>
+                    • Clustered: (DroneId, Time)<br><br>
+                    
+                    <strong>Missions</strong><br>
+                    • Flight plans<br>
+                    • Waypoints (JSON)
+                </div>
+                
+                <div class="layer-tech">🗄️ PostgreSQL 15, EF Core</div>
+            </div>
+            
+            <!-- Elasticsearch -->
+            <div class="layer elasticsearch">
+                <div class="layer-title">🔍 Elasticsearch</div>
+                <div class="layer-content">
+                    <strong>Search & Analytics</strong><br>
+                    Distributed search engine<br>
+                </div>
+                
+                <div class="data-detail">
+                    <div class="data-title">📊 Indices:</div>
+                    <strong>drone-events-2026.01</strong><br>
+                    • Full-text search<br>
+                    • message field (text)<br>
+                    • Monthly rotation<br><br>
+                    
+                    <strong>drone-telemetry-2026.01</strong><br>
+                    • Analytics queries<br>
+                    • Aggregations<br>
+                    • Date histograms<br><br>
+                    
+                    <strong>Sync Strategy:</strong><br>
+                    Immediate index after DB save
+                </div>
+                
+                <div class="layer-tech">🔎 Elasticsearch 8.x, NEST</div>
+            </div>
+            
+            <!-- SignalR Hub -->
+            <div class="layer signalr">
+                <div class="layer-title">📡 SignalR Hub</div>
+                <div class="layer-content">
+                    <strong>WebSocket Server</strong><br><br>
+                    
+                    <strong>Events:</strong><br>
+                    • DroneStateUpdated<br>
+                    • AlertReceived<br>
+                    • FlightPathUpdated<br>
+                    • TelemetryStream<br><br>
+                    
+                    <strong>Groups:</strong><br>
+                    • Per-drone subscription<br>
+                    • Broadcast to all clients<br>
+                    • Selective updates
+                </div>
+                <div class="layer-tech">📡 SignalR Core, WebSockets</div>
+            </div>
+            
+            <!-- External Services -->
+            <div class="layer external">
+                <div class="layer-title">🌐 External APIs</div>
+                <div class="layer-content">
+                    <strong>Weather API</strong><br>
+                    • OpenWeather<br>
+                    • Check every 30s<br>
+                    • Real-time conditions<br><br>
+                    
+                    <strong>Future Services:</strong><br>
+                    • No-Fly Zones API<br>
+                    • SMS/Email Gateway<br>
+                    • Push Notifications<br>
+                    • Air Traffic Data
+                </div>
+                <div class="layer-tech">🔌 HTTP Client, Polly Retry</div>
+            </div>
+            
+            <!-- SVG Arrows -->
+            <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0; pointer-events: none;">
+                <!-- 1. Frontend → API Gateway -->
+                <path class="arrow-solid" d="M 280 460 L 330 460" stroke="#3b82f6" stroke-width="3"/>
+                <polygon points="330,460 320,455 320,465" fill="#3b82f6" />
+                
+                <!-- 2. API Gateway → Backend -->
+                <path class="arrow-solid" d="M 570 460 L 620 460" stroke="#3b82f6" stroke-width="3"/>
+                <polygon points="620,460 610,455 610,465" fill="#3b82f6" />
+                
+                <!-- 3. Backend → Redis (Cache Check) -->
+                <path class="arrow-line" d="M 750 250 L 750 200 L 930 200" stroke="#f59e0b" stroke-width="3"/>
+                <polygon points="930,200 920,195 920,205" fill="#f59e0b" />
+                
+                <!-- 4. Backend → PostgreSQL -->
+                <path class="arrow-solid" d="M 880 450 L 1260 450" stroke="#ef4444" stroke-width="3"/>
+                <polygon points="1260,450 1250,445 1250,455" fill="#ef4444" />
+                
+                <!-- 5. PostgreSQL → Elasticsearch (Sync) -->
+                <path class="arrow-line" d="M 1410 650 L 1410 700" stroke="#06b6d4" stroke-width="3"/>
+                <polygon points="1410,700 1405,690 1415,690" fill="#06b6d4" />
+                
+                <!-- 6. Backend → SignalR -->
+                <path class="arrow-solid" d="M 750 650 L 750 780 L 570 780" stroke="#ec4899" stroke-width="3"/>
+                <polygon points="570,780 580,775 580,785" fill="#ec4899" />
+                
+                <!-- 7. SignalR → Frontend -->
+                <path class="arrow-solid" d="M 330 780 L 150 780 L 150 580" stroke="#ec4899" stroke-width="3"/>
+                <polygon points="150,580 145,590 155,590" fill="#ec4899" />
+                
+                <!-- 8. Backend → External APIs -->
+                <path class="arrow-line" d="M 880 580 L 1050 680 L 930 760" stroke="#a855f7" stroke-width="3"/>
+                <polygon points="930,760 937,750 942,760" fill="#a855f7" />
+                
+                <!-- 9. Redis → Backend (Cache Response) -->
+                <path class="arrow-line" d="M 930 250 L 880 300" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,4"/>
+                <polygon points="880,300 887,292 890,302" fill="#f59e0b" />
+            </svg>
+            
+            <!-- Flow Labels with Step Numbers -->
+            <div class="flow-label http-req" style="left: 285px; top: 425px;">
+                <span class="step-badge">1</span>
+                User Action<br>
+                <span style="font-size: 0.85em;">Click map / Command</span>
+            </div>
+            
+            <div class="flow-label http-req" style="left: 580px; top: 425px;">
+                <span class="step-badge">2</span>
+                REST API<br>
+                <span style="font-size: 0.85em;">POST /drone/goto</span>
+            </div>
+            
+            <div class="flow-label cache-op" style="left: 800px; top: 170px;">
+                <span class="step-badge">3</span>
+                Cache Check<br>
+                <span style="font-size: 0.85em;">GET drone:state (3ms)</span>
+            </div>
+            
+            <div class="flow-label cache-op" style="left: 860px; top: 275px;">
+                ↩️ Cache Hit/Miss<br>
+                <span style="font-size: 0.85em;">Return or Query DB</span>
+            </div>
+            
+            <div class="flow-label db-op" style="left: 1040px; top: 420px;">
+                <span class="step-badge">4</span>
+                Save to DB<br>
+                <span style="font-size: 0.85em;">INSERT event (20ms)</span>
+            </div>
+            
+            <div class="flow-label search-op" style="left: 1430px; top: 665px;">
+                <span class="step-badge">5</span>
+                ES Sync<br>
+                <span style="font-size: 0.85em;">Index doc (50ms)</span>
+            </div>
+            
+            <div class="flow-label realtime-op" style="left: 680px; top: 710px;">
+                <span class="step-badge">6</span>
+                Broadcast<br>
+                <span style="font-size: 0.85em;">SignalR push</span>
+            </div>
+            
+            <div class="flow-label realtime-op" style="left: 200px; top: 665px;">
+                <span class="step-badge">7</span>
+                Real-time<br>
+                <span style="font-size: 0.85em;">Update UI (instant)</span>
+            </div>
+            
+            <div class="flow-label external-op" style="left: 950px; top: 680px;">
+                <span class="step-badge">8</span>
+                Weather<br>
+                <span style="font-size: 0.85em;">Check conditions (200ms)</span>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-title">📖 Data Flow Types</div>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #3b82f6;"></div>
+                    <span><strong>HTTP Request</strong> - REST API calls</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #f59e0b;"></div>
+                    <span><strong>Cache Operations</strong> - Redis read/write</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #ef4444;"></div>
+                    <span><strong>Database</strong> - PostgreSQL persist</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #06b6d4;"></div>
+                    <span><strong>Search</strong> - Elasticsearch index/query</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #ec4899;"></div>
+                    <span><strong>Real-time</strong> - SignalR WebSocket</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #a855f7;"></div>
+                    <span><strong>External</strong> - Weather API, services</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Detailed Scenarios -->
+        <div class="scenarios">
+            <!-- Scenario 1 -->
+            <div class="scenario-box">
+                <div class="scenario-title">🎯 SCENARIO 1: Click to Fly</div>
+                <div class="scenario-steps">
+                    <span class="step-num">1</span>User clicks map → lat/lng<br>
+                    <span class="step-num">2</span>Frontend → API: POST /goto<br>
+                    <span class="step-num">3</span>Backend → Redis: GET state<br>
+                    <span class="step-num">4</span>PostgreSQL: INSERT event<br>
+                    <span class="step-num">5</span>Redis: UPDATE state (TTL 5s)<br>
+                    <span class="step-num">6</span>ES: Index document<br>
+                    <span class="step-num">7</span>SignalR: Broadcast update<br>
+                    <span class="step-num">8</span>Frontend: Move drone on map
+                </div>
+                
+                <div class="code-snippet">
+Redis: drone:drone-1:state
+PostgreSQL: DroneEvents table
+ES: drone-events-2026.01 index</div>
+            </div>
+            
+            <!-- Scenario 2 -->
+            <div class="scenario-box">
+                <div class="scenario-title">⚠️ SCENARIO 2: Weather Alert</div>
+                <div class="scenario-steps">
+                    <span class="step-num">1</span>Timer tick (30s interval)<br>
+                    <span class="step-num">2</span>Backend → Weather API call<br>
+                    <span class="step-num">3</span>Rain detected! Create alert<br>
+                    <span class="step-num">4</span>PostgreSQL: INSERT alert<br>
+                    <span class="step-num">5</span>Redis: INCR alerts:count<br>
+                    <span class="step-num">6</span>ES: Index with weather data<br>
+                    <span class="step-num">7</span>SignalR: Push to clients<br>
+                    <span class="step-num">8</span>Frontend: Toast notification
+                </div>
+                
+                <div class="code-snippet">
+Redis: INCR drone:1:alerts:count
+ES: Full-text searchable message</div>
+            </div>
+            
+            <!-- Scenario 3 -->
+            <div class="scenario-box">
+                <div class="scenario-title">🔍 SCENARIO 3: Search "engine failure"</div>
+                <div class="scenario-steps">
+                    <span class="step-num">1</span>User types search query<br>
+                    <span class="step-num">2</span>Frontend → API: GET /search<br>
+                    <span class="step-num">3</span>Backend → Elasticsearch query<br>
+                    <span class="step-num">4</span>ES: Full-text match on message<br>
+                    <span class="step-num">5</span>ES: Filter by timestamp, severity<br>
+                    <span class="step-num">6</span>ES: Aggregate by drone<br>
+                    <span class="step-num">7</span>Return results (< 50ms)<br>
+                    <span class="step-num">8</span>Frontend: Display results
+                </div>
+                
+                <div class="code-snippet">
+ES Query: match on "message" field
+Result: Inverted index lookup</div>
+            </div>
+            
+            <!-- Scenario 4 -->
+            <div class="scenario-box">
+                <div class="scenario-title">📊 SCENARIO 4: Telemetry Stream</div>
+                <div class="scenario-steps">
+                    <span class="step-num">1</span>Simulation tick (100ms)<br>
+                    <span class="step-num">2</span>Update drone position/battery<br>
+                    <span class="step-num">3</span>Redis: LPUSH telemetry (last 100)<br>
+                    <span class="step-num">4</span>PostgreSQL: INSERT (1/second)<br>
+                    <span class="step-num">5</span>ES: Bulk index (every 10s)<br>
+                    <span class="step-num">6</span>SignalR: Stream to clients<br>
+                    <span class="step-num">7</span>Frontend: Update charts<br>
+                    <span class="step-num">8</span>Smooth animation
+                </div>
+                
+                <div class="code-snippet">
+Redis: Recent (10s window)
+DB: Historical (long-term)</div>
+            </div>
+            
+            <!-- Scenario 5 -->
+            <div class="scenario-box">
+                <div class="scenario-title">🔋 SCENARIO 5: Low Battery Alert</div>
+                <div class="scenario-steps">
+                    <span class="step-num">1</span>Simulation: Battery drops to 19%<br>
+                    <span class="step-num">2</span>Alert Manager: battery < 20%<br>
+                    <span class="step-num">3</span>Create CRITICAL alert<br>
+                    <span class="step-num">4</span>PostgreSQL: INSERT critical event<br>
+                    <span class="step-num">5</span>Redis: DEL state (invalidate cache)<br>
+                    <span class="step-num">6</span>Redis: INCR alerts:count<br>
+                    <span class="step-num">7</span>SignalR: Broadcast critical alert<br>
+                    <span class="step-num">8</span>Frontend: Red banner + sound
+                </div>
+                
+                <div class="code-snippet">
+Cache Invalidation Pattern
+Ensure fresh data on critical events</div>
+            </div>
+            
+            <!-- Scenario 6 -->
+            <div class="scenario-box">
+                <div class="scenario-title">📈 SCENARIO 6: Analytics Dashboard</div>
+                <div class="scenario-steps">
+                    <span class="step-num">1</span>User opens analytics page<br>
+                    <span class="step-num">2</span>Frontend → API: GET /analytics<br>
+                    <span class="step-num">3</span>Backend → ES aggregation<br>
+                    <span class="step-num">4</span>Query: Battery drain over time<br>
+                    <span class="step-num">5</span>ES: DateHistogram (1M records)<br>
+                    <span class="step-num">6</span>ES: Bucketed by hour<br>
+                    <span class="step-num">7</span>Return in 300ms<br>
+                    <span class="step-num">8</span>Chart.js renders graph
+                </div>
+                
+                <div class="code-snippet">
+Why ES: SQL GROUP BY = 30+ seconds
+ES Aggregation = 300ms</div>
+            </div>
+        </div>
+        
+        <!-- Summary Section -->
+        <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 3px solid #22c55e; border-radius: 15px; padding: 30px; margin-top: 40px;">
+            <h2 style="color: #166534; margin-bottom: 20px;">✅ Data Storage Summary</h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <!-- Redis Summary -->
+                <div style="background: white; padding: 20px; border-radius: 10px; border-left: 5px solid #f59e0b;">
+                    <h3 style="color: #f59e0b; margin-bottom: 15px; font-size: 1.2em;">⚡ Redis Cache</h3>
+                    <div style="font-family: 'Courier New', monospace; font-size: 0.85em; line-height: 1.8; color: #4a5568;">
+                        <strong style="color: #2d3748;">Keys Pattern:</strong><br>
+                        drone:{id}:state<br>
+                        drone:{id}:alerts:count<br>
+                        drone:{id}:alerts:recent<br>
+                        drone:{id}:telemetry<br>
+                        drone:{id}:commands<br><br>
+                        
+                        <strong style="color: #2d3748;">TTL Strategy:</strong><br>
+                        • State: 5 seconds<br>
+                        • Alerts: 60 seconds<br>
+                        • Telemetry: 300 seconds<br><br>
+                        
+                        <strong style="color: #2d3748;">Performance:</strong><br>
+                        • Read: 1-3ms<br>
+                        • Write: 1-2ms<br>
+                        • Throughput: 100K ops/sec
+                    </div>
+                </div>
+                
+                <!-- PostgreSQL Summary -->
+                <div style="background: white; padding: 20px; border-radius: 10px; border-left: 5px solid #ef4444;">
+                    <h3 style="color: #ef4444; margin-bottom: 15px; font-size: 1.2em;">💾 PostgreSQL</h3>
+                    <div style="font-family: 'Courier New', monospace; font-size: 0.85em; line-height: 1.8; color: #4a5568;">
+                        <strong style="color: #2d3748;">Tables:</strong><br>
+                        <strong>Drones</strong> - Master data<br>
+                        <strong>DroneEvents</strong> - All alerts<br>
+                        <strong>DroneTelemetry</strong> - Time-series<br>
+                        <strong>Missions</strong> - Flight plans<br><br>
+                        
+                        <strong style="color: #2d3748;">Indexes:</strong><br>
+                        • DroneEvents: (DroneId, Timestamp)<br>
+                        • Telemetry: Clustered by time<br><br>
+                        
+                        <strong style="color: #2d3748;">Partitioning:</strong><br>
+                        • Monthly partitions<br>
+                        • 3-month retention<br>
+                        • Archive to S3
+                    </div>
+                </div>
+                
+                <!-- Elasticsearch Summary -->
+                <div style="background: white; padding: 20px; border-radius: 10px; border-left: 5px solid #06b6d4;">
+                    <h3 style="color: #06b6d4; margin-bottom: 15px; font-size: 1.2em;">🔍 Elasticsearch</h3>
+                    <div style="font-family: 'Courier New', monospace; font-size: 0.85em; line-height: 1.8; color: #4a5568;">
+                        <strong style="color: #2d3748;">Indices:</strong><br>
+                        drone-events-YYYY.MM<br>
+                        drone-telemetry-YYYY.MM<br><br>
+                        
+                        <strong style="color: #2d3748;">Mapping:</strong><br>
+                        • eventType: keyword<br>
+                        • message: text (analyzed)<br>
+                        • timestamp: date<br>
+                        • metadata: object<br><br>
+                        
+                        <strong style="color: #2d3748;">Use Cases:</strong><br>
+                        • Full-text search<br>
+                        • Aggregations<br>
+                        • Analytics dashboards<br>
+                        • Log analysis
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

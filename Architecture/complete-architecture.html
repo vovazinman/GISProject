@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Multi-Drone System Architecture</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow-x: auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+        
+        .flow-diagram {
+            position: relative;
+            min-width: 1700px;
+            height: 1100px;
+            background: #f7fafc;
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 40px;
+        }
+        
+        /* Layers */
+        .layer {
+            position: absolute;
+            border: 3px solid;
+            border-radius: 15px;
+            padding: 20px;
+            background: white;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .layer:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+        
+        .layer-title {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid;
+        }
+        
+        .layer-content {
+            font-size: 0.85em;
+            color: #4a5568;
+            line-height: 1.5;
+        }
+        
+        .layer-tech {
+            margin-top: 10px;
+            padding: 8px;
+            background: #f7fafc;
+            border-radius: 5px;
+            font-size: 0.75em;
+            color: #718096;
+        }
+        
+        /* Frontend */
+        .frontend {
+            left: 40px;
+            top: 200px;
+            width: 220px;
+            border-color: #3b82f6;
+        }
+        
+        .frontend .layer-title {
+            color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        
+        /* API Gateway */
+        .api-gateway {
+            left: 320px;
+            top: 200px;
+            width: 220px;
+            border-color: #10b981;
+        }
+        
+        .api-gateway .layer-title {
+            color: #10b981;
+            border-color: #10b981;
+        }
+        
+        /* Backend Services */
+        .backend-services {
+            left: 600px;
+            top: 80px;
+            width: 260px;
+            height: 400px;
+            border-color: #8b5cf6;
+        }
+        
+        .backend-services .layer-title {
+            color: #8b5cf6;
+            border-color: #8b5cf6;
+        }
+        
+        /* Redis Cache */
+        .redis {
+            left: 600px;
+            top: 540px;
+            width: 260px;
+            border-color: #f59e0b;
+        }
+        
+        .redis .layer-title {
+            color: #f59e0b;
+            border-color: #f59e0b;
+        }
+        
+        /* SignalR Hub */
+        .signalr {
+            left: 320px;
+            top: 500px;
+            width: 220px;
+            border-color: #ec4899;
+        }
+        
+        .signalr .layer-title {
+            color: #ec4899;
+            border-color: #ec4899;
+        }
+        
+        /* Database */
+        .database {
+            left: 920px;
+            top: 200px;
+            width: 240px;
+            border-color: #ef4444;
+        }
+        
+        .database .layer-title {
+            color: #ef4444;
+            border-color: #ef4444;
+        }
+        
+        /* Elasticsearch */
+        .elasticsearch {
+            left: 920px;
+            top: 500px;
+            width: 240px;
+            border-color: #06b6d4;
+        }
+        
+        .elasticsearch .layer-title {
+            color: #06b6d4;
+            border-color: #06b6d4;
+        }
+        
+        /* External Services */
+        .external {
+            left: 1220px;
+            top: 200px;
+            width: 240px;
+            border-color: #a855f7;
+        }
+        
+        .external .layer-title {
+            color: #a855f7;
+            border-color: #a855f7;
+        }
+        
+        /* Monitoring */
+        .monitoring {
+            left: 1220px;
+            top: 500px;
+            width: 240px;
+            border-color: #64748b;
+        }
+        
+        .monitoring .layer-title {
+            color: #64748b;
+            border-color: #64748b;
+        }
+        
+        /* Arrow labels */
+        .arrow-label {
+            position: absolute;
+            background: white;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            font-weight: 700;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+            border: 2px solid;
+            white-space: nowrap;
+            z-index: 5;
+        }
+        
+        /* Flow paths colors */
+        .request-flow { 
+            color: #3b82f6; 
+            border-color: #3b82f6;
+        }
+        .realtime-flow { 
+            color: #ec4899; 
+            border-color: #ec4899;
+        }
+        .database-flow { 
+            color: #ef4444; 
+            border-color: #ef4444;
+        }
+        .cache-flow { 
+            color: #f59e0b; 
+            border-color: #f59e0b;
+        }
+        .search-flow { 
+            color: #06b6d4; 
+            border-color: #06b6d4;
+        }
+        .external-flow { 
+            color: #a855f7; 
+            border-color: #a855f7;
+        }
+        
+        /* SVG Styles */
+        .arrow-line {
+            stroke-width: 3;
+            fill: none;
+            stroke-dasharray: 8, 4;
+            animation: dash 20s linear infinite;
+        }
+        
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -1000;
+            }
+        }
+        
+        .arrow-head {
+            fill: currentColor;
+        }
+        
+        /* Flow scenarios */
+        .scenario-box {
+            position: absolute;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 3px solid #fbbf24;
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 0.85em;
+            max-width: 280px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .scenario-title {
+            font-weight: bold;
+            color: #78350f;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+        
+        .scenario-content {
+            color: #78350f;
+            line-height: 1.5;
+        }
+        
+        .scenario-steps {
+            margin-top: 8px;
+            padding-left: 15px;
+            font-size: 0.9em;
+        }
+        
+        /* Legend */
+        .legend {
+            background: white;
+            border: 3px solid #e2e8f0;
+            border-radius: 15px;
+            padding: 25px;
+            display: inline-block;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .legend-title {
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #2d3748;
+            font-size: 1.2em;
+        }
+        
+        .legend-items {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .legend-line {
+            width: 50px;
+            height: 4px;
+            border-radius: 2px;
+        }
+        
+        .number-badge {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Complete Multi-Drone System Architecture</h1>
+        <p class="subtitle">Full Stack: Frontend → Backend → Cache → Database → Search → External</p>
+        
+        <div class="flow-diagram">
+            <!-- Frontend Layer -->
+            <div class="layer frontend">
+                <div class="layer-title">🎨 Frontend</div>
+                <div class="layer-content">
+                    <strong>React + TypeScript</strong><br><br>
+                    • 🗺️ Map (Leaflet)<br>
+                    • 🔔 Alert Dashboard<br>
+                    • 📊 Telemetry Panel<br>
+                    • 🎮 Control Interface<br><br>
+                    <strong>State:</strong><br>
+                    • React Hooks<br>
+                    • SignalR Client
+                </div>
+                <div class="layer-tech">
+                    📦 React, Leaflet, Axios
+                </div>
+            </div>
+            
+            <!-- API Gateway -->
+            <div class="layer api-gateway">
+                <div class="layer-title">🚪 API Gateway</div>
+                <div class="layer-content">
+                    <strong>REST Endpoints</strong><br><br>
+                    • POST /drone/goto<br>
+                    • GET /drones<br>
+                    • POST /alerts/ack<br>
+                    • GET /telemetry<br><br>
+                    <strong>Security:</strong><br>
+                    • JWT Auth<br>
+                    • Rate Limiting<br>
+                    • CORS
+                </div>
+                <div class="layer-tech">
+                    ⚙️ ASP.NET Controllers
+                </div>
+            </div>
+            
+            <!-- Backend Services -->
+            <div class="layer backend-services">
+                <div class="layer-title">⚙️ Backend Services</div>
+                <div class="layer-content">
+                    <strong>Fleet Manager</strong><br>
+                    • Multi-drone control<br>
+                    • State machine<br>
+                    • Command dispatch<br><br>
+                    
+                    <strong>Simulation Engine</strong><br>
+                    • Physics (100ms tick)<br>
+                    • Battery drain<br>
+                    • Movement calc<br><br>
+                    
+                    <strong>Alert Manager</strong><br>
+                    • Rule engine<br>
+                    • Priority queue<br>
+                    • Notifications<br><br>
+                    
+                    <strong>Weather Service</strong><br>
+                    • API integration<br>
+                    • Alert generation
+                </div>
+                <div class="layer-tech">
+                    🔧 .NET Core, DI
+                </div>
+            </div>
+            
+            <!-- Redis Cache -->
+            <div class="layer redis">
+                <div class="layer-title">⚡ Redis Cache</div>
+                <div class="layer-content">
+                    <strong>In-Memory Store</strong><br><br>
+                    • Drone states (TTL: 5s)<br>
+                    • Active alerts count<br>
+                    • Session storage<br>
+                    • Rate limit counters<br>
+                    • Recent telemetry (100 pts)<br><br>
+                    <strong>Performance:</strong><br>
+                    • 1-3ms response<br>
+                    • 100K+ ops/sec
+                </div>
+                <div class="layer-tech">
+                    🔥 Redis 7.0, StackExchange
+                </div>
+            </div>
+            
+            <!-- SignalR Hub -->
+            <div class="layer signalr">
+                <div class="layer-title">📡 SignalR Hub</div>
+                <div class="layer-content">
+                    <strong>WebSocket Server</strong><br><br>
+                    • DroneStateUpdated<br>
+                    • AlertReceived<br>
+                    • FlightPathUpdated<br>
+                    • TelemetryStream<br><br>
+                    <strong>Groups:</strong><br>
+                    • Per-drone subs<br>
+                    • Broadcast all<br>
+                    • Selective push
+                </div>
+                <div class="layer-tech">
+                    📡 SignalR Core
+                </div>
+            </div>
+            
+            <!-- Database -->
+            <div class="layer database">
+                <div class="layer-title">💾 PostgreSQL</div>
+                <div class="layer-content">
+                    <strong>Primary Database</strong><br><br>
+                    • Drones (master data)<br>
+                    • DroneEvents (alerts)<br>
+                    • DroneTelemetry (time-series)<br>
+                    • Missions (flight plans)<br><br>
+                    <strong>Features:</strong><br>
+                    • EF Core ORM<br>
+                    • Indexes<br>
+                    • Transactions<br>
+                    • Partitioning
+                </div>
+                <div class="layer-tech">
+                    🗄️ PostgreSQL 15, EF Core
+                </div>
+            </div>
+            
+            <!-- Elasticsearch -->
+            <div class="layer elasticsearch">
+                <div class="layer-title">🔍 Elasticsearch</div>
+                <div class="layer-content">
+                    <strong>Search & Analytics</strong><br><br>
+                    • Full-text alert search<br>
+                    • Telemetry aggregations<br>
+                    • Log analysis<br>
+                    • Real-time dashboards<br><br>
+                    <strong>Use Cases:</strong><br>
+                    • "Find engine failures"<br>
+                    • Battery drain patterns<br>
+                    • Geo-spatial queries
+                </div>
+                <div class="layer-tech">
+                    🔎 Elasticsearch 8.x, NEST
+                </div>
+            </div>
+            
+            <!-- External Services -->
+            <div class="layer external">
+                <div class="layer-title">🌐 External APIs</div>
+                <div class="layer-content">
+                    <strong>Weather Service</strong><br>
+                    • OpenWeather API<br>
+                    • Real-time conditions<br>
+                    • Forecasts<br><br>
+                    
+                    <strong>Future Services:</strong><br>
+                    • No-Fly Zones<br>
+                    • Air Traffic Data<br>
+                    • SMS/Email Gateway
+                </div>
+                <div class="layer-tech">
+                    🔌 HTTP Client, Polly
+                </div>
+            </div>
+            
+            <!-- Monitoring -->
+            <div class="layer monitoring">
+                <div class="layer-title">📊 Monitoring</div>
+                <div class="layer-content">
+                    <strong>Observability</strong><br><br>
+                    • Application logs<br>
+                    • Performance metrics<br>
+                    • Error tracking<br>
+                    • Alerts & notifications<br><br>
+                    <strong>Tools:</strong><br>
+                    • Serilog → Seq<br>
+                    • Health checks<br>
+                    • Distributed tracing
+                </div>
+                <div class="layer-tech">
+                    📈 Seq, Serilog
+                </div>
+            </div>
+            
+            <!-- Arrows and Flow -->
+            <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0; pointer-events: none;">
+                <!-- 1. Frontend → API Gateway -->
+                <path class="arrow-line" d="M 260 280 L 320 280" stroke="#3b82f6" stroke-width="3"/>
+                <polygon points="320,280 310,275 310,285" fill="#3b82f6" />
+                
+                <!-- 2. API Gateway → Backend -->
+                <path class="arrow-line" d="M 540 280 L 600 280" stroke="#3b82f6" stroke-width="3"/>
+                <polygon points="600,280 590,275 590,285" fill="#3b82f6" />
+                
+                <!-- 3. Backend → Redis (Cache Check) -->
+                <path class="arrow-line" d="M 730 480 L 730 540" stroke="#f59e0b" stroke-width="3"/>
+                <polygon points="730,540 725,530 735,530" fill="#f59e0b" />
+                
+                <!-- 4. Backend → Database -->
+                <path class="arrow-line" d="M 860 280 L 920 280" stroke="#ef4444" stroke-width="3"/>
+                <polygon points="920,280 910,275 910,285" fill="#ef4444" />
+                
+                <!-- 5. Backend → Elasticsearch -->
+                <path class="arrow-line" d="M 800 480 L 860 540 L 920 580" stroke="#06b6d4" stroke-width="3"/>
+                <polygon points="920,580 912,572 918,568" fill="#06b6d4" />
+                
+                <!-- 6. Backend → SignalR -->
+                <path class="arrow-line" d="M 600 450 L 540 580" stroke="#ec4899" stroke-width="3"/>
+                <polygon points="540,580 545,570 550,575" fill="#ec4899" />
+                
+                <!-- 7. SignalR → Frontend -->
+                <path class="arrow-line" d="M 320 580 L 150 580 L 150 400" stroke="#ec4899" stroke-width="3"/>
+                <polygon points="150,400 145,410 155,410" fill="#ec4899" />
+                
+                <!-- 8. Backend → External APIs -->
+                <path class="arrow-line" d="M 860 200 L 1220 280" stroke="#a855f7" stroke-width="3"/>
+                <polygon points="1220,280 1212,274 1215,285" fill="#a855f7" />
+                
+                <!-- 9. Backend → Monitoring -->
+                <path class="arrow-line" d="M 860 400 L 1000 530 L 1220 580" stroke="#64748b" stroke-width="3" stroke-dasharray="4,4"/>
+                <polygon points="1220,580 1212,575 1215,585" fill="#64748b" />
+                
+                <!-- 10. Database → Elasticsearch (Sync) -->
+                <path class="arrow-line" d="M 1040 400 L 1040 500" stroke="#06b6d4" stroke-width="2" stroke-dasharray="4,4"/>
+                <polygon points="1040,500 1035,490 1045,490" fill="#06b6d4" />
+            </svg>
+            
+            <!-- Flow Labels with Numbers -->
+            <div class="arrow-label request-flow" style="left: 270px; top: 250px;">
+                <span class="number-badge">1</span> HTTP Request<br>flyTo(lat, lng)
+            </div>
+            
+            <div class="arrow-label request-flow" style="left: 560px; top: 250px;">
+                <span class="number-badge">2</span> API Call<br>POST /goto
+            </div>
+            
+            <div class="arrow-label cache-flow" style="left: 740px; top: 500px;">
+                <span class="number-badge">3</span> Cache Check<br>Redis Lookup
+            </div>
+            
+            <div class="arrow-label database-flow" style="left: 870px; top: 250px;">
+                <span class="number-badge">4</span> Save to DB<br>Persist Event
+            </div>
+            
+            <div class="arrow-label search-flow" style="left: 880px; top: 520px;">
+                <span class="number-badge">5</span> Index Event<br>ES Insert
+            </div>
+            
+            <div class="arrow-label realtime-flow" style="left: 550px; top: 500px;">
+                <span class="number-badge">6</span> Broadcast<br>SignalR Push
+            </div>
+            
+            <div class="arrow-label realtime-flow" style="left: 180px; top: 470px;">
+                <span class="number-badge">7</span> Real-time<br>Update UI
+            </div>
+            
+            <div class="arrow-label external-flow" style="left: 1020px; top: 220px;">
+                <span class="number-badge">8</span> Weather API<br>Check Conditions
+            </div>
+            
+            <!-- Scenario Examples -->
+            <div class="scenario-box" style="left: 40px; top: 800px;">
+                <div class="scenario-title">💡 Scenario 1: Click to Fly</div>
+                <div class="scenario-content">
+                    <strong>Flow:</strong>
+                    <div class="scenario-steps">
+                        1. User clicks map<br>
+                        2. Frontend → API Gateway<br>
+                        3. Backend checks Redis cache<br>
+                        4. Backend saves to PostgreSQL<br>
+                        5. Backend indexes in Elasticsearch<br>
+                        6. SignalR broadcasts update<br>
+                        7. Frontend shows drone moving
+                    </div>
+                </div>
+            </div>
+            
+            <div class="scenario-box" style="left: 360px; top: 800px;">
+                <div class="scenario-title">⚠️ Scenario 2: Weather Alert</div>
+                <div class="scenario-content">
+                    <strong>Flow:</strong>
+                    <div class="scenario-steps">
+                        1. Timer tick (100ms)<br>
+                        2. Backend → Weather API<br>
+                        3. Rain detected!<br>
+                        4. Alert created → PostgreSQL<br>
+                        5. Alert indexed → Elasticsearch<br>
+                        6. SignalR broadcast<br>
+                        7. Toast notification on UI
+                    </div>
+                </div>
+            </div>
+            
+            <div class="scenario-box" style="left: 680px; top: 800px;">
+                <div class="scenario-title">🔍 Scenario 3: Search Alerts</div>
+                <div class="scenario-content">
+                    <strong>Flow:</strong>
+                    <div class="scenario-steps">
+                        1. User searches "engine failure"<br>
+                        2. Frontend → API Gateway<br>
+                        3. Backend → Elasticsearch<br>
+                        4. Full-text search (< 50ms)<br>
+                        5. Results aggregated<br>
+                        6. Response to Frontend<br>
+                        7. Display filtered alerts
+                    </div>
+                </div>
+            </div>
+            
+            <div class="scenario-box" style="left: 1000px; top: 800px;">
+                <div class="scenario-title">⚡ Scenario 4: Get Drone State</div>
+                <div class="scenario-content">
+                    <strong>Flow (with Redis):</strong>
+                    <div class="scenario-steps">
+                        1. Frontend requests state<br>
+                        2. Backend checks Redis<br>
+                        3a. <strong>Cache HIT:</strong> Return (3ms) ✅<br>
+                        3b. <strong>Cache MISS:</strong> Query DB<br>
+                        4. Store in Redis (TTL: 5s)<br>
+                        5. Return to Frontend<br>
+                        <strong>Result: 10x faster!</strong>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="scenario-box" style="left: 1340px; top: 800px;">
+                <div class="scenario-title">📊 Scenario 5: Analytics Query</div>
+                <div class="scenario-content">
+                    <strong>Flow:</strong>
+                    <div class="scenario-steps">
+                        1. Dashboard loads<br>
+                        2. Backend → Elasticsearch<br>
+                        3. Aggregation query:<br>
+                        &nbsp;&nbsp;• Battery drain patterns<br>
+                        &nbsp;&nbsp;• Flight time distribution<br>
+                        &nbsp;&nbsp;• Alert frequency by type<br>
+                        4. Results in < 100ms<br>
+                        5. Render charts
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-title">📖 Data Flow Types</div>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #3b82f6;"></div>
+                    <span><strong>HTTP Request/Response</strong> - User actions, CRUD</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #ec4899;"></div>
+                    <span><strong>Real-time WebSocket</strong> - Live updates, alerts</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #ef4444;"></div>
+                    <span><strong>Database Operations</strong> - Persist data</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #f59e0b;"></div>
+                    <span><strong>Cache Operations</strong> - Redis lookups</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #06b6d4;"></div>
+                    <span><strong>Search & Analytics</strong> - Elasticsearch queries</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #a855f7;"></div>
+                    <span><strong>External API Calls</strong> - Weather, services</span>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 40px; background: linear-gradient(135deg, #e0e7ff 0%, #ddd6fe 100%); padding: 30px; border-radius: 15px; border: 3px solid #8b5cf6;">
+            <h2 style="color: #5b21b6; margin-bottom: 20px;">🎓 Architecture Highlights</h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <div style="background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #f59e0b;">
+                    <h3 style="color: #f59e0b; margin-bottom: 10px;">⚡ Redis Cache Layer</h3>
+                    <p style="color: #4a5568; line-height: 1.6; font-size: 0.9em;">
+                        <strong>Purpose:</strong> Reduce database load by 80%<br>
+                        <strong>Use:</strong> Drone states, active alerts, sessions<br>
+                        <strong>Speed:</strong> 1-3ms vs 10-30ms (DB)<br>
+                        <strong>TTL:</strong> 5 seconds for drone state
+                    </p>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #06b6d4;">
+                    <h3 style="color: #06b6d4; margin-bottom: 10px;">🔍 Elasticsearch Layer</h3>
+                    <p style="color: #4a5568; line-height: 1.6; font-size: 0.9em;">
+                        <strong>Purpose:</strong> Fast search & analytics<br>
+                        <strong>Use:</strong> Full-text alert search, aggregations<br>
+                        <strong>Speed:</strong> < 50ms for complex queries<br>
+                        <strong>Scale:</strong> Handles millions of records
+                    </p>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #ec4899;">
+                    <h3 style="color: #ec4899; margin-bottom: 10px;">📡 SignalR Real-time</h3>
+                    <p style="color: #4a5568; line-height: 1.6; font-size: 0.9em;">
+                        <strong>Purpose:</strong> Live updates without polling<br>
+                        <strong>Use:</strong> Drone position, alerts, telemetry<br>
+                        <strong>Frequency:</strong> 10 updates/second<br>
+                        <strong>Connections:</strong> Scales to 1000s of clients
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

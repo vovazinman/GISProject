@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Drone System — Sequence Diagrams v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c14;
+    --surface: #0d1220;
+    --border: #1e2d4a;
+    --presentation: #00d4ff;
+    --application: #00ff9d;
+    --domain: #a855f7;
+    --infrastructure: #fbbf24;
+    --external: #ff6b35;
+    --critical: #ff3860;
+    --messaging: #f472b6;
+    --text: #c8d6e8;
+    --text-dim: #3a5070;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,212,255,0.012) 2px, rgba(0,212,255,0.012) 4px);
+    pointer-events:none; z-index:999;
+  }
+
+  header {
+    text-align:center;
+    padding: 32px 20px 18px;
+    border-bottom: 1px solid #0f1e30;
+    position: relative;
+  }
+
+  h1 {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(1em, 2.8vw, 1.8em);
+    color: var(--presentation);
+    text-shadow: 0 0 20px rgba(0,212,255,0.6);
+    letter-spacing: 5px;
+  }
+
+  .subtitle {
+    font-size: 0.85em;
+    color: var(--text-dim);
+    margin-top: 5px;
+    letter-spacing: 3px;
+  }
+
+  .version-badge {
+    display: inline-block;
+    background: rgba(0,212,255,0.1);
+    border: 1px solid var(--presentation);
+    color: var(--presentation);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7em;
+    padding: 2px 10px;
+    border-radius: 2px;
+    margin-top: 6px;
+    letter-spacing: 2px;
+  }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 18px 16px 0;
+    flex-wrap: wrap;
+    background: #080c14;
+    border-bottom: 1px solid #0f1e30;
+    padding-bottom: 0;
+  }
+
+  .tab-btn {
+    background: transparent;
+    border: 1px solid #1a2a40;
+    border-bottom: none;
+    color: var(--text-dim);
+    padding: 9px 16px;
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 0.82em;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    position: relative;
+    top: 1px;
+  }
+
+  .tab-btn:hover { color: #7ab; border-color: #2a4060; }
+
+  .tab-btn.active {
+    color: #fff;
+    border-color: #1e3050;
+    background: #0d1220;
+    border-bottom: 1px solid #0d1220;
+  }
+
+  /* scenario color overrides */
+  .tab-btn[data-sc="1"].active  { color: var(--presentation); border-top: 2px solid var(--presentation); }
+  .tab-btn[data-sc="2"].active  { color: var(--external);     border-top: 2px solid var(--external); }
+  .tab-btn[data-sc="3"].active  { color: var(--application);  border-top: 2px solid var(--application); }
+  .tab-btn[data-sc="4"].active  { color: var(--domain);       border-top: 2px solid var(--domain); }
+  .tab-btn[data-sc="5"].active  { color: var(--infrastructure);border-top: 2px solid var(--infrastructure); }
+  .tab-btn[data-sc="6"].active  { color: #ff3860;             border-top: 2px solid #ff3860; }
+  .tab-btn[data-sc="7"].active  { color: #06b6d4;             border-top: 2px solid #06b6d4; }
+  .tab-btn[data-sc="8"].active  { color: #f472b6;             border-top: 2px solid #f472b6; }
+  .tab-btn[data-sc="8"].active  { color: #34d399;             border-top: 2px solid #34d399; }
+
+  /* ── Panel ── */
+  .panel {
+    display: none;
+    padding: 24px 20px 40px;
+    background: #0d1220;
+    animation: fadeUp 0.3s ease;
+  }
+  .panel.active { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(6px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .panel-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.88em;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+  }
+
+  .replay-btn {
+    background: transparent;
+    border: 1px solid;
+    padding: 6px 16px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72em;
+    letter-spacing: 2px;
+    transition: all 0.2s;
+  }
+  .replay-btn:hover { filter: brightness(1.3); }
+
+  .rb-1 { border-color:var(--presentation); color:var(--presentation); }
+  .rb-1:hover { background: rgba(0,212,255,0.08); }
+  .rb-2 { border-color:var(--external); color:var(--external); }
+  .rb-2:hover { background: rgba(255,107,53,0.08); }
+  .rb-3 { border-color:var(--application); color:var(--application); }
+  .rb-3:hover { background: rgba(0,255,157,0.08); }
+  .rb-4 { border-color:var(--domain); color:var(--domain); }
+  .rb-4:hover { background: rgba(168,85,247,0.08); }
+  .rb-5 { border-color:var(--infrastructure); color:var(--infrastructure); }
+  .rb-5:hover { background: rgba(251,191,36,0.08); }
+  .rb-6 { border-color:#ff3860; color:#ff3860; }
+  .rb-6:hover { background: rgba(255,56,96,0.08); }
+  .rb-7 { border-color:#06b6d4; color:#06b6d4; }
+  .rb-7:hover { background: rgba(6,182,212,0.08); }
+  .rb-8 { border-color:#f472b6; color:#f472b6; }
+  .rb-8:hover { background: rgba(244,114,182,0.08); }
+  .rb-8 { border-color:#34d399; color:#34d399; }
+  .rb-8:hover { background: rgba(52,211,153,0.08); }
+
+  .seq-wrap { overflow-x: auto; }
+
+  svg.seq { display: block; margin: 0 auto; }
+
+  /* ── Legend ── */
+  .global-legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 12px 20px;
+    background: #080c14;
+    border-bottom: 1px solid #0f1e30;
+    flex-wrap: wrap;
+  }
+  .gli {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.75em; color: var(--text-dim); letter-spacing: 1px;
+  }
+  .gl-line { width:22px; height:2px; border-radius:1px; }
+  .gl-dash { width:22px; height:0; border-top: 2px dashed; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🚁 MULTI-DRONE SYSTEM</h1>
+  <div class="subtitle">SEQUENCE DIAGRAMS — COMPLETE DATA FLOW ANALYSIS</div>
+  <div class="version-badge">v3.0 — 8 SCENARIOS</div>
+</header>
+
+<div class="global-legend">
+  <div class="gli"><div class="gl-line" style="background:#00d4ff"></div>Presentation</div>
+  <div class="gli"><div class="gl-line" style="background:#00ff9d"></div>Application</div>
+  <div class="gli"><div class="gl-line" style="background:#a855f7"></div>Domain</div>
+  <div class="gli"><div class="gl-line" style="background:#fbbf24"></div>Infrastructure</div>
+  <div class="gli"><div class="gl-line" style="background:#ff6b35"></div>External</div>
+  <div class="gli"><div class="gl-line" style="background:#f472b6"></div>Messaging (RabbitMQ)</div>
+  <div class="gli"><div class="gl-dash" style="border-color:#00ff9d"></div>Return / Async</div>
+</div>
+
+<div class="tabs" id="tabs"></div>
+
+<div id="panels"></div>
+
+<script>
+// ─────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────
+const ns = 'http://www.w3.org/2000/svg';
+const BG = '#0d1220';
+
+const LAYERS = {
+  presentation:  { fill:'#040e1a', stroke:'#00d4ff', text:'#00d4ff' },
+  application:   { fill:'#041208', stroke:'#00ff9d', text:'#00ff9d' },
+  domain:        { fill:'#0c0415', stroke:'#a855f7', text:'#a855f7' },
+  infrastructure:{ fill:'#130d00', stroke:'#fbbf24', text:'#fbbf24' },
+  external:      { fill:'#150500', stroke:'#ff6b35', text:'#ff6b35' },
+  critical:      { fill:'#150008', stroke:'#ff3860', text:'#ff3860' },
+  analytics:     { fill:'#001515', stroke:'#06b6d4', text:'#06b6d4' },
+  messaging:     { fill:'#1a0820', stroke:'#f472b6', text:'#f472b6' },
+};
+
+// ─────────────────────────────────────────────────────
+// SVG helpers
+// ─────────────────────────────────────────────────────
+function e(tag, attrs, text) {
+  const el = document.createElementNS(ns, tag);
+  for (const [k,v] of Object.entries(attrs||{})) el.setAttribute(k,v);
+  if (text !== undefined) el.textContent = String(text);
+  return el;
+}
+
+// ─────────────────────────────────────────────────────
+// Draw actor header + footer + lifeline
+// ─────────────────────────────────────────────────────
+function drawActors(svg, actors, topY, bottomY) {
+  const W = 108, H = 48;
+  actors.forEach(a => {
+    const c = LAYERS[a.layer];
+    // header
+    const g = e('g');
+    g.appendChild(e('rect',{x:a.x-W/2, y:topY, width:W, height:H, rx:3, fill:c.fill, stroke:c.stroke, 'stroke-width':'1.5'}));
+    g.appendChild(e('rect',{x:a.x-W/2, y:topY, width:W, height:3, rx:2, fill:c.stroke}));
+    g.appendChild(e('text',{x:a.x, y:topY+18, fill:c.text, 'font-family':'Rajdhani,sans-serif',
+      'font-weight':'700', 'font-size':'11', 'text-anchor':'middle'}, a.label));
+    if (a.sub) g.appendChild(e('text',{x:a.x, y:topY+33, fill:c.text, opacity:'0.55',
+      'font-family':'Share Tech Mono,monospace', 'font-size':'8.5', 'text-anchor':'middle'}, a.sub));
+    svg.appendChild(g);
+
+    // lifeline
+    svg.appendChild(e('line',{x1:a.x, y1:topY+H, x2:a.x, y2:bottomY,
+      stroke:c.stroke, 'stroke-dasharray':'5,4', 'stroke-width':'1', opacity:'0.25'}));
+
+    // footer
+    const g2 = e('g');
+    g2.appendChild(e('rect',{x:a.x-W/2, y:bottomY, width:W, height:H, rx:3, fill:c.fill, stroke:c.stroke, 'stroke-width':'1.5'}));
+    g2.appendChild(e('rect',{x:a.x-W/2, y:bottomY+H-3, width:W, height:3, rx:2, fill:c.stroke}));
+    g2.appendChild(e('text',{x:a.x, y:bottomY+18, fill:c.text, 'font-family':'Rajdhani,sans-serif',
+      'font-weight':'700', 'font-size':'11', 'text-anchor':'middle'}, a.label));
+    if (a.sub) g2.appendChild(e('text',{x:a.x, y:bottomY+33, fill:c.text, opacity:'0.55',
+      'font-family':'Share Tech Mono,monospace', 'font-size':'8.5', 'text-anchor':'middle'}, a.sub));
+    svg.appendChild(g2);
+  });
+}
+
+// ─────────────────────────────────────────────────────
+// Draw section band
+// ─────────────────────────────────────────────────────
+function drawSection(svg, y, label, color, svgWidth) {
+  svg.appendChild(e('rect',{x:0, y:y-1, width:svgWidth, height:28, fill:color, opacity:'0.04', rx:0}));
+  svg.appendChild(e('text',{x:8, y:y+16,
+    fill:color, 'font-family':'Share Tech Mono,monospace', 'font-size':'8.5',
+    opacity:'0.45', 'letter-spacing':'2'}, label));
+}
+
+// ─────────────────────────────────────────────────────
+// Draw one message — returns the group element
+// ─────────────────────────────────────────────────────
+function drawMsg(svg, x1, x2, y, label, color, isReturn=false, note=null, stepNum=null) {
+  const g = e('g');
+  g.style.opacity = '0';
+  g.style.transition = 'opacity 0.32s ease';
+
+  const dir = x2 >= x1 ? 1 : -1;
+  const gap = 5;
+  const lx2 = x2 + dir * (-gap);
+
+  // line
+  g.appendChild(e('line',{
+    x1:String(x1), y1:String(y), x2:String(lx2), y2:String(y),
+    stroke:color, 'stroke-width':'1.8',
+    'stroke-dasharray': isReturn ? '6,3' : 'none'
+  }));
+
+  // arrowhead
+  const ax = x2 + dir * (-1);
+  if (isReturn) {
+    g.appendChild(e('polyline',{
+      points: dir>0 ? `${ax-9},${y-5} ${ax},${y} ${ax-9},${y+5}` : `${ax+9},${y-5} ${ax},${y} ${ax+9},${y+5}`,
+      stroke:color, 'stroke-width':'1.5', fill:'none'
+    }));
+  } else {
+    g.appendChild(e('polygon',{
+      points: dir>0 ? `${ax-9},${y-5} ${ax},${y} ${ax-9},${y+5}` : `${ax+9},${y-5} ${ax},${y} ${ax+9},${y+5}`,
+      fill:color
+    }));
+  }
+
+  // origin dot
+  g.appendChild(e('circle',{cx:String(x1), cy:String(y), r:'3', fill:color, opacity:'0.7'}));
+
+  // label bg + text
+  const mx = (x1+x2)/2;
+  g.appendChild(e('rect',{x:mx-58, y:y-17, width:116, height:14, rx:2, fill:BG, opacity:'0.88'}));
+  g.appendChild(e('text',{
+    x:mx, y:y-6, fill:color, 'text-anchor':'middle',
+    'font-family':'Share Tech Mono,monospace', 'font-size':'10'
+  }, label));
+
+  // note (perf annotation)
+  if (note) {
+    g.appendChild(e('text',{
+      x:mx, y:y+13, fill:'#2a4060', 'text-anchor':'middle',
+      'font-family':'Share Tech Mono,monospace', 'font-size':'8.5'
+    }, note));
+  }
+
+  // step badge
+  if (stepNum !== null) {
+    const bx = x1 + dir*14;
+    g.appendChild(e('circle',{cx:bx, cy:y, r:'8', fill:color, opacity:'0.15', stroke:color, 'stroke-width':'1'}));
+    g.appendChild(e('text',{
+      x:bx, y:y, 'text-anchor':'middle', 'dominant-baseline':'middle',
+      fill:color, 'font-family':'Share Tech Mono,monospace', 'font-size':'8'
+    }, String(stepNum)));
+  }
+
+  svg.appendChild(g);
+  return g;
+}
+
+// ─────────────────────────────────────────────────────
+// Animate a list of message groups
+// ─────────────────────────────────────────────────────
+function animate(msgs, delay=50) {
+  msgs.forEach((g,i) => {
+    g.style.opacity = '0';
+    g.style.transition = 'none';
+  });
+  msgs.forEach((g,i) => {
+    setTimeout(() => {
+      g.style.transition = 'opacity 0.32s ease';
+      g.style.opacity = '1';
+    }, delay + i * 400);
+  });
+}
+
+// ─────────────────────────────────────────────────────
+// Build SVG for a scenario
+// ─────────────────────────────────────────────────────
+function buildSVG(config) {
+  const { width, height, actors, messages, sections } = config;
+  const svg = e('svg',{ class:'seq', width, height, viewBox:`0 0 ${width} ${height}` });
+  svg.style.background = BG;
+  svg.style.borderRadius = '6px';
+
+  const topY = 20, bottomY = height - 68;
+
+  // grid bg subtle
+  for (let x = 0; x < width; x+=80)
+    svg.appendChild(e('line',{x1:x, y1:0, x2:x, y2:height, stroke:'#0f1e2e', 'stroke-width':'0.5'}));
+  for (let y = 0; y < height; y+=40)
+    svg.appendChild(e('line',{x1:0, y1:y, x2:width, y2:y, stroke:'#0a1520', 'stroke-width':'0.5'}));
+
+  drawActors(svg, actors, topY, bottomY);
+
+  // sections
+  (sections||[]).forEach(s => drawSection(svg, s.y, s.label, s.color, width));
+
+  const msgs = [];
+  messages.forEach(m => {
+    const ax = actors.find(a=>a.id===m.from).x;
+    const bx = actors.find(a=>a.id===m.to).x;
+    const color = m.color || LAYERS[actors.find(a=>a.id===m.from).layer]?.stroke || '#888';
+    const g = drawMsg(svg, ax, bx, m.y, m.label, color, m.return||false, m.note||null, m.step||null);
+    msgs.push(g);
+  });
+
+  return { svg, msgs };
+}
+
+// ═══════════════════════════════════════════════════════
+// SCENARIO DEFINITIONS
+// ═══════════════════════════════════════════════════════
+
+const SCENARIOS = [
+
+  // ── 1: User Clicks Map (Click to Fly) ─────────────────
+  {
+    id: 1,
+    tab: '🎯 Click to Fly',
+    title: '// SCENARIO 1 — USER CLICKS MAP → FULL SYSTEM CYCLE',
+    rbClass: 'rb-1',
+    config: {
+      width: 1300, height: 780,
+      actors: [
+        { id:'fe',   x:65,   label:'Frontend',    sub:'React',       layer:'presentation'   },
+        { id:'ctrl', x:185,  label:'Controllers', sub:'ASP.NET',     layer:'presentation'   },
+        { id:'svc',  x:320,  label:'DroneService',sub:'Application', layer:'application'    },
+        { id:'cache',x:445,  label:'CacheService',sub:'App Layer',   layer:'application'    },
+        { id:'dom',  x:570,  label:'Domain Logic',sub:'Core',        layer:'domain'         },
+        { id:'redis',x:700,  label:'Redis',       sub:'drone:state', layer:'infrastructure' },
+        { id:'pg',   x:840,  label:'PostgreSQL',  sub:'DroneEvents', layer:'infrastructure' },
+        { id:'es',   x:980,  label:'Elasticsearch',sub:'Events Idx', layer:'infrastructure' },
+        { id:'hub',  x:1110, label:'SignalR Hub', sub:'DroneHub',    layer:'presentation'   },
+        { id:'fe2',  x:1235, label:'Frontend',    sub:'UI Update',   layer:'presentation'   },
+      ],
+      sections: [
+        { y:93,  label:'// INGRESS', color:'#00d4ff' },
+        { y:215, label:'// CACHE LOOKUP', color:'#fbbf24' },
+        { y:310, label:'// DOMAIN VALIDATION', color:'#a855f7' },
+        { y:395, label:'// PERSISTENCE', color:'#ef4444' },
+        { y:565, label:'// REAL-TIME BROADCAST', color:'#00d4ff' },
+      ],
+      messages: [
+        { from:'fe',    to:'ctrl',  y:115,  step:1,  label:'POST /drone/{id}/goto',         color:'#00d4ff' },
+        { from:'ctrl',  to:'svc',   y:150,  step:2,  label:'GetDroneState(droneId)',        color:'#00d4ff' },
+        { from:'svc',   to:'cache', y:185,  step:3,  label:'CheckCache()',                  color:'#00ff9d' },
+        { from:'cache', to:'redis', y:235,  step:4,  label:'GET drone:{id}:state',          color:'#fbbf24' },
+        { from:'redis', to:'cache', y:270,  step:5,  label:'CACHE MISS → null',             color:'#fbbf24', return:true },
+        { from:'svc',   to:'dom',   y:325,  step:6,  label:'ValidateDomain(cmd)',           color:'#a855f7' },
+        { from:'dom',   to:'svc',   y:365,  step:7,  label:'DroneState (valid)',            color:'#a855f7', return:true },
+        { from:'svc',   to:'redis', y:415,  step:8,  label:'SET drone:{id}:state  TTL:5s', color:'#fbbf24' },
+        { from:'svc',   to:'pg',    y:455,  step:9,  label:'INSERT DroneEvent',             color:'#ef4444', note:'~20ms' },
+        { from:'svc',   to:'es',    y:495,  step:10, label:'Index drone-events-2026.01',    color:'#06b6d4', note:'async' },
+        { from:'pg',    to:'svc',   y:535,  step:11, label:'✓ eventId saved',               color:'#ef4444', return:true },
+        { from:'ctrl',  to:'hub',   y:585,  step:12, label:'DroneStateUpdated',             color:'#ec4899' },
+        { from:'hub',   to:'fe2',   y:625,  step:13, label:'Push → all subscribed clients', color:'#ec4899' },
+        { from:'ctrl',  to:'fe',    y:665,  step:14, label:'200 OK + DroneStateDto',        color:'#00d4ff', return:true },
+        { from:'fe2',   to:'hub',   y:705,  step:15, label:'✓ Map drone moved',             color:'#00d4ff', return:true },
+      ]
+    }
+  },
+
+  // ── 2: Weather Alert ──────────────────────────────────
+  {
+    id: 2,
+    tab: '⚠️ Weather Alert',
+    title: '// SCENARIO 2 — BACKGROUND SERVICE → ALERT PIPELINE',
+    rbClass: 'rb-2',
+    config: {
+      width: 1160, height: 720,
+      actors: [
+        { id:'wsvc',  x:70,   label:'WeatherSvc',  sub:'Timer 30s',    layer:'application'    },
+        { id:'wapi',  x:195,  label:'Weather API', sub:'OpenWeather',  layer:'external'       },
+        { id:'amgr',  x:340,  label:'AlertManager',sub:'Application',  layer:'application'    },
+        { id:'dom',   x:480,  label:'Domain Valid.',sub:'AlertRules',   layer:'domain'         },
+        { id:'pg',    x:620,  label:'PostgreSQL',  sub:'DroneEvents',  layer:'infrastructure' },
+        { id:'redis', x:760,  label:'Redis',       sub:'alerts:count', layer:'infrastructure' },
+        { id:'es',    x:895,  label:'Elasticsearch',sub:'Events Idx',  layer:'infrastructure' },
+        { id:'hub',   x:1030, label:'SignalR Hub', sub:'AlertHub',     layer:'presentation'   },
+        { id:'fe',    x:1125, label:'Frontend',    sub:'Toast UI',     layer:'presentation'   },
+      ],
+      sections: [
+        { y:90,  label:'// EXTERNAL POLL',      color:'#ff6b35' },
+        { y:195, label:'// ALERT CREATION',     color:'#00ff9d' },
+        { y:310, label:'// PERSISTENCE + INDEX',color:'#fbbf24' },
+        { y:490, label:'// REAL-TIME PUSH',     color:'#ec4899' },
+      ],
+      messages: [
+        { from:'wsvc',  to:'wapi',  y:112, step:1,  label:'GET /weather/conditions',        color:'#ff6b35' },
+        { from:'wapi',  to:'wsvc',  y:148, step:2,  label:'wind: 18m/s — threshold exceeded',color:'#ff6b35', return:true },
+        { from:'wsvc',  to:'amgr',  y:200, step:3,  label:'TriggerAlert(severity=HIGH)',     color:'#00ff9d' },
+        { from:'amgr',  to:'dom',   y:240, step:4,  label:'ValidateAlert(alertModel)',       color:'#a855f7' },
+        { from:'dom',   to:'amgr',  y:278, step:5,  label:'Alert (valid, priority=2)',       color:'#a855f7', return:true },
+        { from:'amgr',  to:'pg',    y:325, step:6,  label:'INSERT Alert + DroneEvent',       color:'#ef4444', note:'~20ms' },
+        { from:'pg',    to:'amgr',  y:360, step:7,  label:'✓ alertId=uuid',                 color:'#ef4444', return:true },
+        { from:'amgr',  to:'redis', y:398, step:8,  label:'INCR drone:{id}:alerts  TTL:60s',color:'#fbbf24' },
+        { from:'amgr',  to:'es',    y:440, step:9,  label:'Index alert (full-text)',         color:'#06b6d4', note:'async' },
+        { from:'amgr',  to:'hub',   y:500, step:10, label:'AlertReceived(alertDto)',         color:'#ec4899' },
+        { from:'hub',   to:'fe',    y:540, step:11, label:'Push to all clients',             color:'#ec4899' },
+        { from:'fe',    to:'hub',   y:580, step:12, label:'⚠️ Toast: WIND ALERT HIGH',      color:'#ff6b35', return:true },
+      ]
+    }
+  },
+
+  // ── 3: Search Alerts ──────────────────────────────────
+  {
+    id: 3,
+    tab: '🔍 Search',
+    title: '// SCENARIO 3 — SEARCH ALERTS → ELASTICSEARCH',
+    rbClass: 'rb-3',
+    config: {
+      width: 880, height: 580,
+      actors: [
+        { id:'fe',   x:70,  label:'Frontend',      sub:'Search UI',    layer:'presentation'   },
+        { id:'ctrl', x:205, label:'SearchCtrl',    sub:'ASP.NET',      layer:'presentation'   },
+        { id:'ssvc', x:365, label:'SearchService', sub:'Application',  layer:'application'    },
+        { id:'es',   x:545, label:'Elasticsearch', sub:'bool query',   layer:'infrastructure' },
+        { id:'map',  x:700, label:'SearchService', sub:'DTO mapping',  layer:'application'    },
+        { id:'fe2',  x:820, label:'Frontend',      sub:'Results',      layer:'presentation'   },
+      ],
+      sections: [
+        { y:90,  label:'// INGRESS',  color:'#00d4ff' },
+        { y:185, label:'// ES QUERY', color:'#06b6d4' },
+        { y:345, label:'// MAPPING + RETURN', color:'#00ff9d' },
+      ],
+      messages: [
+        { from:'fe',   to:'ctrl', y:110, step:1, label:'GET /search?q=&type=&date=',     color:'#00d4ff' },
+        { from:'ctrl', to:'ssvc', y:150, step:2, label:'SearchAlerts(query, filters)',   color:'#00d4ff' },
+        { from:'ssvc', to:'es',   y:200, step:3, label:'bool query + range filter',      color:'#06b6d4' },
+        { from:'es',   to:'ssvc', y:255, step:4, label:'Full-text match on message field',color:'#06b6d4', return:true, note:'inverted index' },
+        { from:'es',   to:'ssvc', y:295, step:5, label:'Filter: timestamp, severity',    color:'#06b6d4', return:true },
+        { from:'es',   to:'ssvc', y:335, step:6, label:'hits[] + aggregations',          color:'#06b6d4', return:true, note:'p99 < 50ms' },
+        { from:'ssvc', to:'map',  y:380, step:7, label:'Map hits → AlertDto[]',          color:'#00ff9d' },
+        { from:'map',  to:'ssvc', y:415, step:8, label:'SearchResultDto',                color:'#00ff9d', return:true },
+        { from:'ctrl', to:'fe',   y:455, step:9, label:'200 OK + results',               color:'#00d4ff', return:true },
+        { from:'fe',   to:'fe2',  y:495, step:10,label:'Render results list (< 50ms)',   color:'#00d4ff' },
+      ]
+    }
+  },
+
+  // ── 4: Route Calculation (NEW) ────────────────────────
+  {
+    id: 4,
+    tab: '🗺️ Route Calc',
+    title: '// SCENARIO 4 — PATH PLANNING → A* + PHYSICS ENGINE',
+    rbClass: 'rb-4',
+    config: {
+      width: 1260, height: 820,
+      actors: [
+        { id:'fe',     x:65,   label:'Frontend',      sub:'Map Click',     layer:'presentation'   },
+        { id:'ctrl',   x:195,  label:'MissionCtrl',   sub:'ASP.NET',       layer:'presentation'   },
+        { id:'msvc',   x:330,  label:'MissionService',sub:'Application',   layer:'application'    },
+        { id:'pp',     x:465,  label:'PathPlanner',   sub:'Domain Svc',    layer:'domain'         },
+        { id:'ai',     x:600,  label:'AI Subsystem',  sub:'A* / RRT',      layer:'domain'         },
+        { id:'phys',   x:740,  label:'PhysicsEngine', sub:'Kinematics',    layer:'domain'         },
+        { id:'safe',   x:875,  label:'SafetyValidator',sub:'NFZ + Collide',layer:'domain'         },
+        { id:'pg',     x:1010, label:'PostgreSQL',    sub:'Missions tbl',  layer:'infrastructure' },
+        { id:'redis',  x:1140, label:'Redis',         sub:'route cache',   layer:'infrastructure' },
+        { id:'hub',    x:1210, label:'SignalR Hub',   sub:'PathUpdated',   layer:'presentation'   },
+      ],
+      sections: [
+        { y:93,  label:'// PATH PLANNING REQUEST',     color:'#a855f7' },
+        { y:215, label:'// A* PATHFINDING ALGORITHM',  color:'#a855f7' },
+        { y:370, label:'// PHYSICS CONSTRAINTS',       color:'#a855f7' },
+        { y:490, label:'// SAFETY VALIDATION',         color:'#ff6b35' },
+        { y:580, label:'// PERSIST + CACHE',           color:'#fbbf24' },
+        { y:690, label:'// BROADCAST TO CLIENTS',      color:'#00d4ff' },
+      ],
+      messages: [
+        { from:'fe',    to:'ctrl',  y:115, step:1,  label:'POST /mission/plan  {start,goal,droneId}', color:'#00d4ff' },
+        { from:'ctrl',  to:'msvc',  y:152, step:2,  label:'PlanRoute(start, goal, droneId)',          color:'#00d4ff' },
+        { from:'msvc',  to:'pp',    y:188, step:3,  label:'CalculatePath(waypoints[])',               color:'#a855f7' },
+
+        { from:'pp',    to:'ai',    y:230, step:4,  label:'RunAstar(grid, start, goal)',              color:'#a855f7' },
+        { from:'ai',    to:'ai',    y:265, step:5,  label:'Expand nodes → g(n)+h(n)',                 color:'#a855f7', return:true, note:'heuristic: Euclidean distance' },
+        { from:'ai',    to:'pp',    y:310, step:6,  label:'rawPath[] — nodes visited',               color:'#a855f7', return:true, note:'O((V+E) log V)' },
+
+        { from:'pp',    to:'phys',  y:380, step:7,  label:'ApplyKinematics(rawPath, droneSpec)',      color:'#a855f7' },
+        { from:'phys',  to:'phys',  y:415, step:8,  label:'Calc velocity, accel, turn radius',        color:'#a855f7', return:true, note:'tick: 100ms' },
+        { from:'phys',  to:'pp',    y:455, step:9,  label:'smoothedPath[] + timeEstimate',            color:'#a855f7', return:true },
+
+        { from:'pp',    to:'safe',  y:500, step:10, label:'ValidatePath(smoothedPath)',               color:'#ff6b35' },
+        { from:'safe',  to:'pp',    y:545, step:11, label:'✓ clear — no NFZ / no collision',          color:'#ff6b35', return:true },
+
+        { from:'msvc',  to:'pg',    y:595, step:12, label:'INSERT Mission {waypoints JSON}',          color:'#ef4444', note:'~20ms' },
+        { from:'pg',    to:'msvc',  y:635, step:13, label:'✓ missionId=uuid',                        color:'#ef4444', return:true },
+        { from:'msvc',  to:'redis', y:670, step:14, label:'SET route:{droneId}  TTL:300s',            color:'#fbbf24' },
+
+        { from:'ctrl',  to:'hub',   y:710, step:15, label:'FlightPathUpdated(missionDto)',            color:'#ec4899' },
+        { from:'hub',   to:'fe',    y:750, step:16, label:'Push path polyline to clients',            color:'#ec4899' },
+        { from:'fe',    to:'ctrl',  y:790, step:17, label:'✓ Route drawn on map',                    color:'#00d4ff', return:true },
+      ]
+    }
+  },
+
+  // ── 5: Telemetry Stream ───────────────────────────────
+  {
+    id: 5,
+    tab: '📡 Telemetry',
+    title: '// SCENARIO 5 — SIMULATION TICK → TELEMETRY STREAM',
+    rbClass: 'rb-5',
+    config: {
+      width: 1060, height: 680,
+      actors: [
+        { id:'sim',   x:65,  label:'Sim Engine',   sub:'tick:100ms',    layer:'domain'         },
+        { id:'phys',  x:195, label:'PhysicsEngine',sub:'Kinematics',    layer:'domain'         },
+        { id:'tsvc',  x:345, label:'TelemetrySvc', sub:'Application',   layer:'application'    },
+        { id:'redis', x:490, label:'Redis',        sub:'LPUSH list',    layer:'infrastructure' },
+        { id:'pg',    x:635, label:'PostgreSQL',   sub:'DroneTelemetry',layer:'infrastructure' },
+        { id:'es',    x:775, label:'Elasticsearch',sub:'bulk index',    layer:'infrastructure' },
+        { id:'hub',   x:915, label:'SignalR Hub',  sub:'TelemetryHub',  layer:'presentation'   },
+        { id:'fe',    x:1010,label:'Frontend',     sub:'Charts',        layer:'presentation'   },
+      ],
+      sections: [
+        { y:93,  label:'// PHYSICS TICK (100ms)', color:'#a855f7' },
+        { y:215, label:'// HOT PATH — REDIS',     color:'#fbbf24' },
+        { y:330, label:'// COLD PATH — DB + ES',  color:'#ef4444' },
+        { y:490, label:'// STREAMING TO UI',      color:'#ec4899' },
+      ],
+      messages: [
+        { from:'sim',   to:'phys',  y:112, step:1,  label:'Tick(deltaTime=100ms)',           color:'#a855f7' },
+        { from:'phys',  to:'sim',   y:148, step:2,  label:'DroneState{pos,vel,battery}',     color:'#a855f7', return:true },
+        { from:'sim',   to:'tsvc',  y:188, step:3,  label:'RecordTelemetry(telemetryDto)',   color:'#00ff9d' },
+
+        { from:'tsvc',  to:'redis', y:232, step:4,  label:'LPUSH drone:{id}:telemetry',      color:'#fbbf24', note:'LTRIM last 100 pts' },
+        { from:'redis', to:'tsvc',  y:268, step:5,  label:'✓ list len=100 (10s window)',      color:'#fbbf24', return:true },
+
+        { from:'tsvc',  to:'pg',    y:342, step:6,  label:'INSERT DroneTelemetry  (1/sec)',  color:'#ef4444', note:'partitioned by month' },
+        { from:'pg',    to:'tsvc',  y:378, step:7,  label:'✓ committed',                     color:'#ef4444', return:true },
+        { from:'tsvc',  to:'es',    y:418, step:8,  label:'Bulk index (every 10s)',          color:'#06b6d4', note:'async batch' },
+        { from:'es',    to:'tsvc',  y:455, step:9,  label:'✓ indexed',                       color:'#06b6d4', return:true },
+
+        { from:'tsvc',  to:'hub',   y:500, step:10, label:'TelemetryStream(snapshot)',       color:'#ec4899' },
+        { from:'hub',   to:'fe',    y:540, step:11, label:'Push to subscribed clients',      color:'#ec4899' },
+        { from:'fe',    to:'hub',   y:580, step:12, label:'✓ Charts updated (smooth)',        color:'#00d4ff', return:true },
+      ]
+    }
+  },
+
+  // ── 6: Low Battery Alert ──────────────────────────────
+  {
+    id: 6,
+    tab: '🔋 Low Battery',
+    title: '// SCENARIO 6 — CRITICAL ALERT → CACHE INVALIDATION',
+    rbClass: 'rb-6',
+    config: {
+      width: 1050, height: 660,
+      actors: [
+        { id:'sim',   x:65,  label:'Sim Engine',   sub:'Battery Mon.',  layer:'domain'         },
+        { id:'amgr',  x:200, label:'AlertManager', sub:'Rule Engine',   layer:'application'    },
+        { id:'dom',   x:345, label:'Domain Valid.',sub:'AlertRules',    layer:'domain'         },
+        { id:'pg',    x:490, label:'PostgreSQL',   sub:'DroneEvents',   layer:'infrastructure' },
+        { id:'redis', x:635, label:'Redis',        sub:'Invalidate',    layer:'infrastructure' },
+        { id:'es',    x:775, label:'Elasticsearch',sub:'Events Idx',    layer:'infrastructure' },
+        { id:'hub',   x:915, label:'SignalR Hub',  sub:'AlertHub',      layer:'critical'       },
+        { id:'fe',    x:1005,label:'Frontend',     sub:'Red Banner',    layer:'critical'       },
+      ],
+      sections: [
+        { y:93,  label:'// BATTERY THRESHOLD BREACH', color:'#ff3860' },
+        { y:215, label:'// CRITICAL ALERT CREATION',  color:'#ff3860' },
+        { y:350, label:'// CACHE INVALIDATION',       color:'#fbbf24' },
+        { y:490, label:'// CRITICAL BROADCAST',       color:'#ff3860' },
+      ],
+      messages: [
+        { from:'sim',   to:'amgr',  y:112, step:1,  label:'BatteryLevel=19% < threshold(20%)',  color:'#ff3860' },
+        { from:'amgr',  to:'dom',   y:160, step:2,  label:'ValidateAlert(CRITICAL, battery)',    color:'#a855f7' },
+        { from:'dom',   to:'amgr',  y:198, step:3,  label:'Alert (CRITICAL, priority=1)',        color:'#a855f7', return:true },
+
+        { from:'amgr',  to:'pg',    y:248, step:4,  label:'INSERT critical DroneEvent',          color:'#ef4444', note:'~20ms' },
+        { from:'pg',    to:'amgr',  y:285, step:5,  label:'✓ eventId',                           color:'#ef4444', return:true },
+
+        { from:'amgr',  to:'redis', y:360, step:6,  label:'DEL drone:{id}:state  (invalidate)',  color:'#fbbf24', note:'force fresh on next read' },
+        { from:'amgr',  to:'redis', y:400, step:7,  label:'INCR drone:{id}:alerts  TTL:60s',     color:'#fbbf24' },
+        { from:'redis', to:'amgr',  y:438, step:8,  label:'✓ cache cleared + counter updated',   color:'#fbbf24', return:true },
+        { from:'amgr',  to:'es',    y:472, step:9,  label:'Index critical event',                color:'#06b6d4', note:'async' },
+
+        { from:'amgr',  to:'hub',   y:512, step:10, label:'AlertReceived(CRITICAL)',             color:'#ff3860' },
+        { from:'hub',   to:'fe',    y:552, step:11, label:'Push CRITICAL to all clients',        color:'#ff3860' },
+        { from:'fe',    to:'hub',   y:595, step:12, label:'🔴 Red Banner + Sound Alert',         color:'#ff3860', return:true },
+      ]
+    }
+  },
+
+  // ── 7: Analytics Dashboard ────────────────────────────
+  {
+    id: 7,
+    tab: '📈 Analytics',
+    title: '// SCENARIO 7 — ANALYTICS DASHBOARD → ES AGGREGATIONS',
+    rbClass: 'rb-7',
+    config: {
+      width: 900, height: 600,
+      actors: [
+        { id:'fe',   x:65,  label:'Frontend',     sub:'Analytics Pg', layer:'analytics'      },
+        { id:'ctrl', x:200, label:'AnalyticsCtrl',sub:'ASP.NET',      layer:'presentation'   },
+        { id:'asvc', x:360, label:'AnalyticsSvc', sub:'Application',  layer:'application'    },
+        { id:'es',   x:550, label:'Elasticsearch',sub:'Aggregations', layer:'analytics'      },
+        { id:'map',  x:720, label:'AnalyticsSvc', sub:'DTO mapping',  layer:'application'    },
+        { id:'fe2',  x:845, label:'Frontend',     sub:'Chart.js',     layer:'analytics'      },
+      ],
+      sections: [
+        { y:93,  label:'// ANALYTICS REQUEST',       color:'#06b6d4' },
+        { y:195, label:'// ES AGGREGATION PIPELINE', color:'#06b6d4' },
+        { y:390, label:'// MAPPING + RENDER',        color:'#00ff9d' },
+      ],
+      messages: [
+        { from:'fe',   to:'ctrl', y:112, step:1, label:'GET /analytics?range=7d&droneId=',    color:'#06b6d4' },
+        { from:'ctrl', to:'asvc', y:148, step:2, label:'GetBatteryTrend(droneId, range)',     color:'#06b6d4' },
+        { from:'asvc', to:'es',   y:205, step:3, label:'DateHistogram(1M telemetry docs)',    color:'#06b6d4', note:'bucket by hour' },
+        { from:'es',   to:'asvc', y:260, step:4, label:'aggs: avg_battery per bucket',        color:'#06b6d4', return:true, note:'SQL GROUP BY = 30s  →  ES = 300ms' },
+        { from:'asvc', to:'es',   y:308, step:5, label:'terms agg: top events by type',       color:'#06b6d4' },
+        { from:'es',   to:'asvc', y:355, step:6, label:'buckets[] + doc_count',               color:'#06b6d4', return:true },
+        { from:'asvc', to:'map',  y:400, step:7, label:'Map buckets → AnalyticsDto',          color:'#00ff9d' },
+        { from:'map',  to:'asvc', y:438, step:8, label:'AnalyticsResponseDto',                color:'#00ff9d', return:true },
+        { from:'ctrl', to:'fe',   y:478, step:9, label:'200 OK (300ms total)',                color:'#06b6d4', return:true },
+        { from:'fe',   to:'fe2',  y:520, step:10,label:'Chart.js renders time-series graph',  color:'#06b6d4' },
+      ]
+    }
+  },
+
+  // ── 8: RabbitMQ Notification Service ─────────────────
+  {
+    id: 8,
+    tab: '🐰 Notifications',
+    title: '// SCENARIO 8 — RABBITMQ → EMAIL / SMS NOTIFICATION PIPELINE',
+    rbClass: 'rb-8',
+    config: {
+      width: 1420, height: 870,
+      actors: [
+        { id:'amgr',   x:65,   label:'AlertManager', sub:'Publisher',     layer:'application'    },
+        { id:'pub',    x:205,  label:'MQ Publisher',  sub:'IEventBus',     layer:'messaging'      },
+        { id:'exch',   x:370,  label:'RabbitMQ',      sub:'topic exchange',layer:'messaging'      },
+        { id:'qemail', x:530,  label:'email.queue',   sub:'durable',       layer:'messaging'      },
+        { id:'qsms',   x:660,  label:'sms.queue',     sub:'durable',       layer:'messaging'      },
+        { id:'qdead',  x:800,  label:'dead-letter Q', sub:'DLX',           layer:'messaging'      },
+        { id:'nsvc',   x:960,  label:'NotifService',  sub:'Consumer',      layer:'application'    },
+        { id:'email',  x:1115, label:'Email Gateway', sub:'SendGrid/SES',  layer:'external'       },
+        { id:'sms',    x:1265, label:'SMS Gateway',   sub:'Twilio',        layer:'external'       },
+        { id:'pg',     x:1390, label:'PostgreSQL',    sub:'Notif log',     layer:'infrastructure' },
+      ],
+      sections: [
+        { y:93,  label:'// PUBLISH — ALERT EVENT TO EXCHANGE',     color:'#f472b6' },
+        { y:215, label:'// ROUTING — TOPIC EXCHANGE BINDINGS',     color:'#f472b6' },
+        { y:338, label:'// CONSUME — NOTIFICATION SERVICE WORKER', color:'#00ff9d' },
+        { y:498, label:'// DISPATCH — EMAIL + SMS GATEWAYS',       color:'#ff6b35' },
+        { y:668, label:'// ACK + DEAD-LETTER HANDLING',            color:'#fbbf24' },
+      ],
+      messages: [
+        { from:'amgr',   to:'pub',    y:112, step:1,  label:'PublishEvent(AlertNotification)',           color:'#f472b6' },
+        { from:'pub',    to:'exch',   y:150, step:2,  label:'BasicPublish  routing_key=alert.critical',  color:'#f472b6', note:'persistent=true, mandatory=true' },
+        { from:'exch',   to:'qemail', y:232, step:3,  label:'Route → alert.#  (email binding)',          color:'#f472b6' },
+        { from:'exch',   to:'qsms',   y:268, step:4,  label:'Route → alert.critical  (sms binding)',     color:'#f472b6' },
+        { from:'pub',    to:'amgr',   y:305, step:5,  label:'✓ enqueued — fire & forget',                color:'#f472b6', return:true },
+        { from:'qemail', to:'nsvc',   y:358, step:6,  label:'BasicDeliver  (email.queue)',                color:'#00ff9d' },
+        { from:'qsms',   to:'nsvc',   y:395, step:7,  label:'BasicDeliver  (sms.queue)',                  color:'#00ff9d' },
+        { from:'nsvc',   to:'nsvc',   y:435, step:8,  label:'Deserialize → NotificationDto',              color:'#00ff9d', return:true, note:'IHostedService worker' },
+        { from:'nsvc',   to:'email',  y:515, step:9,  label:'POST /mail/send  {to, subject, html}',       color:'#ff6b35' },
+        { from:'email',  to:'nsvc',   y:555, step:10, label:'202 Accepted  messageId=msg_xxx',            color:'#ff6b35', return:true, note:'Polly: retry x3, exp backoff' },
+        { from:'nsvc',   to:'sms',    y:598, step:11, label:'POST /Messages  {to, body}',                 color:'#ff6b35' },
+        { from:'sms',    to:'nsvc',   y:638, step:12, label:'201 Created  sid=SMxxxxxxx',                 color:'#ff6b35', return:true, note:'Polly: retry x3, exp backoff' },
+        { from:'nsvc',   to:'pg',     y:682, step:13, label:'INSERT NotificationLog {channel,status}',    color:'#ef4444' },
+        { from:'nsvc',   to:'qemail', y:720, step:14, label:'BasicAck  (deliveryTag)',                    color:'#00ff9d', return:true, note:'manual ack after success' },
+        { from:'nsvc',   to:'qsms',   y:757, step:15, label:'BasicAck  (deliveryTag)',                    color:'#00ff9d', return:true },
+        { from:'qemail', to:'qdead',  y:808, step:16, label:'BasicNack → DLX  (max retries exceeded)',    color:'#fbbf24', note:'alert ops team / manual review' },
+      ]
+    }
+  },
+
+];
+
+// ─────────────────────────────────────────────────────
+// Build all tabs + panels
+// ─────────────────────────────────────────────────────
+const tabsEl   = document.getElementById('tabs');
+const panelsEl = document.getElementById('panels');
+
+const builtSVGs = {};
+
+SCENARIOS.forEach((sc, idx) => {
+  // Tab button
+  const btn = document.createElement('button');
+  btn.className = 'tab-btn' + (idx===0?' active':'');
+  btn.setAttribute('data-sc', sc.id);
+  btn.textContent = sc.tab;
+  btn.onclick = () => switchTo(sc.id);
+  tabsEl.appendChild(btn);
+
+  // Panel
+  const panel = document.createElement('div');
+  panel.className = 'panel' + (idx===0?' active':'');
+  panel.id = `panel-${sc.id}`;
+
+  const hdr = document.createElement('div');
+  hdr.className = 'panel-header';
+
+  const title = document.createElement('div');
+  title.className = 'panel-title';
+  title.textContent = sc.title;
+
+  const btn2 = document.createElement('button');
+  btn2.className = `replay-btn ${sc.rbClass}`;
+  btn2.textContent = '▶ REPLAY';
+  btn2.onclick = () => animate(builtSVGs[sc.id], 50);
+
+  hdr.appendChild(title);
+  hdr.appendChild(btn2);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'seq-wrap';
+
+  panel.appendChild(hdr);
+  panel.appendChild(wrap);
+  panelsEl.appendChild(panel);
+
+  // Build SVG
+  const { svg, msgs } = buildSVG(sc.config);
+  wrap.appendChild(svg);
+  builtSVGs[sc.id] = msgs;
+
+  if (idx === 0) animate(msgs, 300);
+});
+
+function switchTo(id) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`[data-sc="${id}"]`).classList.add('active');
+  document.getElementById(`panel-${id}`).classList.add('active');
+  setTimeout(() => animate(builtSVGs[id], 100), 50);
+}
+</script>
+</body>
+</html>

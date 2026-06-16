@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Drone System - Detailed Data Flow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 40px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        
+        .scenario {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 3px solid #0284c7;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .scenario-title {
+            font-size: 1.8em;
+            color: #0c4a6e;
+            margin-bottom: 20px;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        
+        .step {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 5px solid;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .step.redis { border-color: #f59e0b; }
+        .step.postgres { border-color: #ef4444; }
+        .step.elasticsearch { border-color: #06b6d4; }
+        .step.backend { border-color: #8b5cf6; }
+        
+        .step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .step-number {
+            display: inline-block;
+            width: 35px;
+            height: 35px;
+            background: #0284c7;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 35px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .step-title {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #0c4a6e;
+            flex: 1;
+            margin-left: 15px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        
+        .step-time {
+            background: #fef3c7;
+            color: #78350f;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+            font-size: 0.85em;
+            line-height: 1.6;
+        }
+        
+        .code-title {
+            color: #22c55e;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        
+        .json { color: #fbbf24; }
+        .key { color: #60a5fa; }
+        .value { color: #a78bfa; }
+        .string { color: #34d399; }
+        .number { color: #fb923c; }
+        
+        .data-structure {
+            background: #f8fafc;
+            border: 2px solid #cbd5e0;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        
+        .ds-title {
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        
+        .table-structure {
+            display: grid;
+            grid-template-columns: 200px 150px 1fr;
+            gap: 2px;
+            margin: 10px 0;
+            background: #cbd5e0;
+        }
+        
+        .table-header {
+            background: #4a5568;
+            color: white;
+            padding: 10px;
+            font-weight: bold;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        
+        .table-cell {
+            background: white;
+            padding: 10px;
+        }
+        
+        .highlight {
+            background: #fef3c7;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .note {
+            background: #fffbeb;
+            border-left: 4px solid #fbbf24;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 6px;
+        }
+        
+        .note-title {
+            font-weight: bold;
+            color: #78350f;
+            margin-bottom: 8px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        
+        .flow-arrow {
+            text-align: center;
+            color: #0284c7;
+            font-size: 2em;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Multi-Drone System - Detailed Data Flow</h1>
+        <p class="subtitle">Exact Data Structures: Redis → PostgreSQL → Elasticsearch</p>
+        
+        <!-- SCENARIO 1: Click to Fly -->
+        <div class="scenario">
+            <div class="scenario-title">
+                🎯 SCENARIO 1: User Clicks Map → Drone Flies
+            </div>
+            
+            <div class="timeline">
+                <!-- Step 1: Check Redis Cache -->
+                <div class="step redis">
+                    <div class="step-header">
+                        <span class="step-number">1</span>
+                        <span class="step-title">Backend Checks Redis Cache</span>
+                        <span class="step-time">~3ms</span>
+                    </div>
+                    
+                    <div class="code-block">
+                        <div class="code-title">📋 Redis Command:</div>
+<span class="key">GET</span> drone:drone-1:state</div>
+                    
+                    <div class="data-structure">
+                        <div class="ds-title">💾 What's Stored in Redis:</div>
+                        <div class="code-block">
+<span class="key">Key:</span> <span class="string">"drone:drone-1:state"</span>
+<span class="key">Type:</span> String (JSON)
+<span class="key">TTL:</span> <span class="number">5</span> seconds
+<span class="key">Value:</span> {
+  <span class="key">"droneId"</span>: <span class="string">"drone-1"</span>,
+  <span class="key">"position"</span>: {
+    <span class="key">"x"</span>: <span class="number">0</span>,
+    <span class="key">"y"</span>: <span class="number">0</span>,
+    <span class="key">"z"</span>: <span class="number">50</span>
+  },
+  <span class="key">"battery"</span>: <span class="number">85.5</span>,
+  <span class="key">"status"</span>: <span class="string">"flying"</span>,
+  <span class="key">"isArmed"</span>: <span class="value">true</span>,
+  <span class="key">"lastUpdated"</span>: <span class="string">"2026-01-31T14:30:45Z"</span>
+}</div>
+                    </div>
+                    
+                    <div class="note">
+                        <div class="note-title">🔑 Redis Keys Used:</div>
+                        • <span class="highlight">drone:{id}:state</span> - Current drone state (TTL: 5s)<br>
+                        • <span class="highlight">drone:{id}:alerts:count</span> - Active alerts counter (TTL: 60s)<br>
+                        • <span class="highlight">drone:{id}:telemetry</span> - List of last 100 telemetry points (TTL: 300s)
+                    </div>
+                </div>
+                
+                <!-- Step 2: Process Command -->
+                <div class="step backend">
+                    <div class="step-header">
+                        <span class="step-number">2</span>
+                        <span class="step-title">Backend Processes Flight Command</span>
+                        <span class="step-time">~10ms</span>
+                    </div>
+                    
+                    <div class="code-block">
+                        <div class="code-title">⚙️ C# Code:</div>
+<span class="key">var</span> result = <span class="key">await</span> droneService.GoToAsync(
+    droneId: <span class="string">"drone-1"</span>,
+    targetX: <span class="number">150.5</span>,
+    targetY: <span class="number">220.8</span>,
+    targetZ: <span class="number">50</span>,
+    speed: <span class="number">15</span>,
+    mode: FlightMode.Safe
+);</div>
+                </div>
+                
+                <!-- Step 3: Save to PostgreSQL -->
+                <div class="step postgres">
+                    <div class="step-header">
+                        <span class="step-number">3</span>
+                        <span class="step-title">Save Event to PostgreSQL</span>
+                        <span class="step-time">~20ms</span>
+                    </div>
+                    
+                    <div class="data-structure">
+                        <div class="ds-title">💾 PostgreSQL Tables Updated:</div>
+                        
+                        <strong style="color: #2d3748; margin: 15px 0; display: block;">Table: DroneEvents</strong>
+                        <div class="table-structure">
+                            <div class="table-header">Column</div>
+                            <div class="table-header">Type</div>
+                            <div class="table-header">Value</div>
+                            
+                            <div class="table-cell">Id</div>
+                            <div class="table-cell">GUID</div>
+                            <div class="table-cell">a3f2e8d9-4c5b-...</div>
+                            
+                            <div class="table-cell">DroneId</div>
+                            <div class="table-cell">GUID</div>
+                            <div class="table-cell">drone-1</div>
+                            
+                            <div class="table-cell">EventType</div>
+                            <div class="table-cell">VARCHAR(50)</div>
+                            <div class="table-cell">"FlightCommandReceived"</div>
+                            
+                            <div class="table-cell">Severity</div>
+                            <div class="table-cell">VARCHAR(20)</div>
+                            <div class="table-cell">"Info"</div>
+                            
+                            <div class="table-cell">Message</div>
+                            <div class="table-cell">VARCHAR(500)</div>
+                            <div class="table-cell">"Drone moving to (150.5, 220.8, 50)"</div>
+                            
+                            <div class="table-cell">Timestamp</div>
+                            <div class="table-cell">DATETIME2</div>
+                            <div class="table-cell">2026-01-31 14:30:45.123</div>
+                            
+                            <div class="table-cell">IsAcknowledged</div>
+                            <div class="table-cell">BIT</div>
+                            <div class="table-cell">false</div>
+                            
+                            <div class="table-cell">Metadata</div>
+                            <div class="table-cell">JSON</div>
+                            <div class="table-cell">{"targetPos": {...}, "mode": "Safe"}</div>
+                        </div>
+                        
+                        <strong style="color: #2d3748; margin: 15px 0; display: block;">Table: Drones (UPDATE)</strong>
+                        <div class="code-block">
+<span class="key">UPDATE</span> Drones 
+<span class="key">SET</span> 
+    Status = <span class="string">'Flying'</span>,
+    LastSeenAt = <span class="string">'2026-01-31 14:30:45'</span>,
+    UpdatedAt = <span class="string">'2026-01-31 14:30:45'</span>
+<span class="key">WHERE</span> Id = <span class="string">'drone-1'</span></div>
+                    </div>
+                </div>
+                
+                <!-- Step 4: Update Redis -->
+                <div class="step redis">
+                    <div class="step-header">
+                        <span class="step-number">4</span>
+                        <span class="step-title">Update Redis Cache</span>
+                        <span class="step-time">~2ms</span>
+                    </div>
+                    
+                    <div class="code-block">
+                        <div class="code-title">📋 Redis Commands:</div>
+<span class="comment">// Update state with new TTL</span>
+<span class="key">SETEX</span> drone:drone-1:state <span class="number">5</span> {
+  <span class="string">"droneId"</span>: <span class="string">"drone-1"</span>,
+  <span class="string">"position"</span>: {<span class="string">"x"</span>: <span class="number">0</span>, <span class="string">"y"</span>: <span class="number">0</span>, <span class="string">"z"</span>: <span class="number">50</span>},
+  <span class="string">"targetPosition"</span>: {<span class="string">"x"</span>: <span class="number">150.5</span>, <span class="string">"y"</span>: <span class="number">220.8</span>, <span class="string">"z"</span>: <span class="number">50</span>},
+  <span class="string">"battery"</span>: <span class="number">85.5</span>,
+  <span class="string">"status"</span>: <span class="string">"flying"</span>,
+  <span class="string">"isArmed"</span>: <span class="value">true</span>
+}
+
+<span class="comment">// Add to recent commands list (keep last 100)</span>
+<span class="key">LPUSH</span> drone:drone-1:commands {<span class="string">"type"</span>: <span class="string">"goto"</span>, <span class="string">"target"</span>: [<span class="number">150.5</span>, <span class="number">220.8</span>, <span class="number">50</span>]}
+<span class="key">LTRIM</span> drone:drone-1:commands <span class="number">0</span> <span class="number">99</span></div>
+                </div>
+                
+                <!-- Step 5: Index in Elasticsearch -->
+                <div class="step elasticsearch">
+                    <div class="step-header">
+                        <span class="step-number">5</span>
+                        <span class="step-title">Index Event in Elasticsearch</span>
+                        <span class="step-time">~50ms (async)</span>
+                    </div>
+                    
+                    <div class="data-structure">
+                        <div class="ds-title">🔍 Elasticsearch Index Structure:</div>
+                        
+                        <div class="code-block">
+                            <div class="code-title">Index Name:</div>
+<span class="key">drone-events-2026.01</span> <span class="comment">// Monthly index with date suffix</span></div>
+                        
+                        <div class="code-block">
+                            <div class="code-title">Mapping (Schema):</div>
+{
+  <span class="key">"mappings"</span>: {
+    <span class="key">"properties"</span>: {
+      <span class="key">"eventId"</span>: {<span class="key">"type"</span>: <span class="string">"keyword"</span>},
+      <span class="key">"droneId"</span>: {<span class="key">"type"</span>: <span class="string">"keyword"</span>},
+      <span class="key">"eventType"</span>: {<span class="key">"type"</span>: <span class="string">"keyword"</span>},
+      <span class="key">"severity"</span>: {<span class="key">"type"</span>: <span class="string">"keyword"</span>},
+      <span class="key">"message"</span>: {<span class="key">"type"</span>: <span class="string">"text"</span>, <span class="key">"analyzer"</span>: <span class="string">"standard"</span>},
+      <span class="key">"timestamp"</span>: {<span class="key">"type"</span>: <span class="string">"date"</span>},
+      <span class="key">"metadata"</span>: {<span class="key">"type"</span>: <span class="string">"object"</span>}
+    }
+  }
+}</div>
+                        
+                        <div class="code-block">
+                            <div class="code-title">Document Indexed:</div>
+<span class="key">POST</span> /drone-events-2026.01/_doc
+{
+  <span class="key">"eventId"</span>: <span class="string">"a3f2e8d9-4c5b-..."</span>,
+  <span class="key">"droneId"</span>: <span class="string">"drone-1"</span>,
+  <span class="key">"eventType"</span>: <span class="string">"FlightCommandReceived"</span>,
+  <span class="key">"severity"</span>: <span class="string">"Info"</span>,
+  <span class="key">"message"</span>: <span class="string">"Drone moving to (150.5, 220.8, 50)"</span>,
+  <span class="key">"timestamp"</span>: <span class="string">"2026-01-31T14:30:45.123Z"</span>,
+  <span class="key">"metadata"</span>: {
+    <span class="key">"targetPosition"</span>: {<span class="key">"x"</span>: <span class="number">150.5</span>, <span class="key">"y"</span>: <span class="number">220.8</span>, <span class="key">"z"</span>: <span class="number">50</span>},
+    <span class="key">"mode"</span>: <span class="string">"Safe"</span>,
+    <span class="key">"speed"</span>: <span class="number">15</span>
+  }
+}</div>
+                    </div>
+                    
+                    <div class="note">
+                        <div class="note-title">🔄 Sync Strategy:</div>
+                        <strong>Option A: Immediate (used here):</strong><br>
+                        Backend indexes to ES immediately after saving to PostgreSQL<br><br>
+                        <strong>Option B: Bulk Async:</strong><br>
+                        Background job reads from PostgreSQL every 10s and bulk indexes to ES<br><br>
+                        <strong>Option C: CDC (Change Data Capture):</strong><br>
+                        Debezium listens to PostgreSQL WAL logs and auto-syncs to ES
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flow-arrow">⬇️</div>
+        
+        <!-- SCENARIO 2: Weather Alert -->
+        <div class="scenario">
+            <div class="scenario-title">
+                ⚠️ SCENARIO 2: Weather API Detects Rain → Create Alert
+            </div>
+            
+            <div class="timeline">
+                <!-- Step 1: External API Call -->
+                <div class="step backend">
+                    <div class="step-header">
+                        <span class="step-number">1</span>
+                        <span class="step-title">Backend Calls Weather API</span>
+                        <span class="step-time">~200ms</span>
+                    </div>
+                    
+                    <div class="code-block">
+                        <div class="code-title">🌤️ OpenWeather API Response:</div>
+{
+  <span class="key">"coord"</span>: {<span class="key">"lat"</span>: <span class="number">32.766</span>, <span class="key">"lon"</span>: <span class="number">35.038</span>},
+  <span class="key">"weather"</span>: [
+    {
+      <span class="key">"id"</span>: <span class="number">501</span>,
+      <span class="key">"main"</span>: <span class="string">"Rain"</span>,
+      <span class="key">"description"</span>: <span class="string">"moderate rain"</span>
+    }
+  ],
+  <span class="key">"main"</span>: {
+    <span class="key">"temp"</span>: <span class="number">15.5</span>,
+    <span class="key">"humidity"</span>: <span class="number">85</span>
+  },
+  <span class="key">"wind"</span>: {<span class="key">"speed"</span>: <span class="number">7.5</span>}
+}</div>
+                </div>
+                
+                <!-- Step 2: Create Alert -->
+                <div class="step backend">
+                    <div class="step-header">
+                        <span class="step-number">2</span>
+                        <span class="step-title">Alert Manager Creates Warning</span>
+                        <span class="step-time">~5ms</span>
+                    </div>
+                    
+                    <div class="code-block">
+                        <div class="code-title">⚙️ C# Code:</div>
+<span class="key">var</span> alert = <span class="key">new</span> DroneEvent {
+    Id = Guid.NewGuid(),
+    DroneId = <span class="string">"drone-1"</span>,
+    EventType = <span class="string">"WeatherWarning"</span>,
+    Severity = <span class="string">"Warning"</span>,
+    Message = <span class="string">"Moderate rain detected in flight area"</span>,
+    Timestamp = DateTime.UtcNow,
+    IsAcknowledged = <span class="value">false</span>,
+    Metadata = JsonSerializer.Serialize(<span class="key">new</span> {
+        Weather = weatherData,
+        DronePosition = drone.Position
+    })
+};</div>
+                </div>
+                
+                <!-- Step 3: Save to PostgreSQL -->
+                <div class="step postgres">
+                    <div class="step-header">
+                        <span class="step-number">3</span>
+                        <span class="step-title">INSERT to PostgreSQL</span>
+                        <span class="step-time">~15ms</span>
+                    </div>
+                    
+                    <div class="data-structure">
+                        <div class="ds-title">💾 DroneEvents Table:</div>
+                        <div class="table-structure">
+                            <div class="table-header">Column</div>
+                            <div class="table-header">Type</div>
+                            <div class="table-header">Value</div>
+                            
+                            <div class="table-cell">Id</div>
+                            <div class="table-cell">GUID</div>
+                            <div class="table-cell">b7d3f9a2-6e8c-...</div>
+                            
+                            <div class="table-cell">DroneId</div>
+                            <div class="table-cell">GUID</div>
+                            <div class="table-cell">drone-1</div>
+                            
+                            <div class="table-cell">EventType</div>
+                            <div class="table-cell">VARCHAR(50)</div>
+                            <div class="table-cell">"WeatherWarning"</div>
+                            
+                            <div class="table-cell">Severity</div>
+                            <div class="table-cell">VARCHAR(20)</div>
+                            <div class="table-cell">"Warning"</div>
+                            
+                            <div class="table-cell">Message</div>
+                            <div class="table-cell">VARCHAR(500)</div>
+                            <div class="table-cell">"Moderate rain detected in flight area"</div>
+                            
+                            <div class="table-cell">Timestamp</div>
+                            <div class="table-cell">DATETIME2</div>
+                            <div class="table-cell">2026-01-31 14:35:12.456</div>
+                            
+                            <div class="table-cell">IsAcknowledged</div>
+                            <div class="table-cell">BIT</div>
+                            <div class="table-cell">false</div>
+                            
+                            <div class="table-cell">Metadata</div>
+                            <div class="table-cell">JSON</div>
+                            <div class="table-cell">{"weather": {...}, "dronePosition": {...}}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 4: Update Redis Counter -->
+                <div class="step redis">
+                    <div class="step-header">
+                        <span class="step-number">4</span>
+                        <span class="step-title">Increment Redis Alert Counter</span>
+                        <span class="step-time">~1ms</span>
+                    </div>
+                    
+                    <div class="code-block">
+                        <div class="code-title">📋 Redis Commands:</div>
+<span class="comment">// Increment active alerts count</span>
+<span class="key">INCR</span> drone:drone-1:alerts:count
+<span class="comment">// Result: 3 (if was 2 before)</span>
+
+<span class="comment">// Set TTL if key is new</span>
+<span class="key">EXPIRE</span> drone:drone-1:alerts:count <span class="number">60</span>
+
+<span class="comment">// Add to recent alerts list (sorted set by timestamp)</span>
+<span class="key">ZADD</span> drone:drone-1:alerts:recent <span class="number">1738337712</span> <span class="string">"b7d3f9a2-6e8c-..."</span>
+<span class="comment">// Score is Unix timestamp, value is alert ID</span>
+
+<span class="comment">// Keep only last 50 alerts</span>
+<span class="key">ZREMRANGEBYRANK</span> drone:drone-1:alerts:recent <span class="number">0</span> <span class="number">-51</span></div>
+                    
+                    <div class="note">
+                        <div class="note-title">🔑 Redis Keys for Alerts:</div>
+                        • <span class="highlight">drone:{id}:alerts:count</span> - Integer counter (INCR/DECR)<br>
+                        • <span class="highlight">drone:{id}:alerts:recent</span> - Sorted Set (timestamp → alertId)<br>
+                        • <span class="highlight">alerts:critical</span> - Global list of critical alerts (all drones)
+                    </div>
+                </div>
+                
+                <!-- Step 5: Index in Elasticsearch -->
+                <div class="step elasticsearch">
+                    <div class="step-header">
+                        <span class="step-number">5</span>
+                        <span class="step-title">Index Alert in Elasticsearch</span>
+                        <span class="step-time">~30ms</span>
+                    </div>
+                    
+                    <div class="code-block">
+                        <div class="code-title">🔍 Document Indexed:</div>
+<span class="key">POST</span> /drone-events-2026.01/_doc
+{
+  <span class="key">"eventId"</span>: <span class="string">"b7d3f9a2-6e8c-..."</span>,
+  <span class="key">"droneId"</span>: <span class="string">"drone-1"</span>,
+  <span class="key">"eventType"</span>: <span class="string">"WeatherWarning"</span>,
+  <span class="key">"severity"</span>: <span class="string">"Warning"</span>,
+  <span class="key">"message"</span>: <span class="string">"Moderate rain detected in flight area"</span>,
+  <span class="key">"timestamp"</span>: <span class="string">"2026-01-31T14:35:12.456Z"</span>,
+  <span class="key">"metadata"</span>: {
+    <span class="key">"weather"</span>: {
+      <span class="key">"condition"</span>: <span class="string">"Rain"</span>,
+      <span class="key">"description"</span>: <span class="string">"moderate rain"</span>,
+      <span class="key">"temperature"</span>: <span class="number">15.5</span>,
+      <span class="key">"humidity"</span>: <span class="number">85</span>,
+      <span class="key">"windSpeed"</span>: <span class="number">7.5</span>
+    },
+    <span class="key">"dronePosition"</span>: {
+      <span class="key">"lat"</span>: <span class="number">32.766</span>,
+      <span class="key">"lng"</span>: <span class="number">35.038</span>,
+      <span class="key">"altitude"</span>: <span class="number">50</span>
+    }
+  }
+}
+
+<span class="comment">// Elasticsearch automatically creates inverted index on "message" field
+// This enables fast full-text search like: "rain" or "moderate rain"</span></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flow-arrow">⬇️</div>
+        
+        <!-- SCENARIO 3: Search Alerts -->
+        <div class="scenario">
+            <div class="scenario-title">
+                🔍 SCENARIO 3: User Searches "engine failure"
+            </div>
+            
+            <div class="timeline">
+                <!-- Step 1: Elasticsearch Query -->
+                <div class="step elasticsearch">
+                    <div class="step-header">
+                        <span class="step-number">1</span>
+                        <span class="step-title">Query Elasticsearch</span>
+                        <span class="step-time">~25ms</span>
+                    </div>
+                    
+                    <div class="code-block">
+                        <div class="code-title">🔍 Elasticsearch Query DSL:</div>
+<span class="key">POST</span> /drone-events-2026.01/_search
+{
+  <span class="key">"query"</span>: {
+    <span class="key">"bool"</span>: {
+      <span class="key">"must"</span>: [
+        {
+          <span class="key">"match"</span>: {
+            <span class="key">"message"</span>: {
+              <span class="key">"query"</span>: <span class="string">"engine failure"</span>,
+              <span class="key">"operator"</span>: <span class="string">"and"</span>
+            }
+          }
+        }
+      ],
+      <span class="key">"filter"</span>: [
+        {
+          <span class="key">"range"</span>: {
+            <span class="key">"timestamp"</span>: {
+              <span class="key">"gte"</span>: <span class="string">"now-24h"</span>
+            }
+          }
+        },
+        {
+          <span class="key">"term"</span>: {
+            <span class="key">"isAcknowledged"</span>: <span class="value">false</span>
+          }
+        }
+      ]
+    }
+  },
+  <span class="key">"sort"</span>: [
+    {<span class="key">"timestamp"</span>: {<span class="key">"order"</span>: <span class="string">"desc"</span>}}
+  ],
+  <span class="key">"size"</span>: <span class="number">50</span>
+}</div>
+                    
+                    <div class="note">
+                        <div class="note-title">💡 Why This is Fast:</div>
+                        • <strong>Inverted Index:</strong> ES pre-indexes "engine" and "failure" separately<br>
+                        • <strong>Term Dictionary:</strong> Binary search on sorted terms<br>
+                        • <strong>Posting List:</strong> Quick lookup of documents containing terms<br>
+                        • <strong>SQL Equivalent:</strong> Would be LIKE '%engine%' AND message LIKE '%failure%' = SLOW!
+                    </div>
+                </div>
+                
+                <!-- Step 2: Aggregation -->
+                <div class="step elasticsearch">
+                    <div class="step-header">
+                        <span class="step-number">2</span>
+                        <span class="step-title">Optional: Get Statistics</span>
+                        <span class="step-time">+10ms</span>
+                    </div>
+                    
+                    <div class="code-block">
+                        <div class="code-title">📊 Aggregation Query:</div>
+<span class="key">POST</span> /drone-events-2026.01/_search
+{
+  <span class="key">"size"</span>: <span class="number">0</span>,
+  <span class="key">"query"</span>: {
+    <span class="key">"match"</span>: {<span class="key">"message"</span>: <span class="string">"engine failure"</span>}
+  },
+  <span class="key">"aggs"</span>: {
+    <span class="key">"by_drone"</span>: {
+      <span class="key">"terms"</span>: {
+        <span class="key">"field"</span>: <span class="string">"droneId"</span>,
+        <span class="key">"size"</span>: <span class="number">10</span>
+      }
+    },
+    <span class="key">"by_severity"</span>: {
+      <span class="key">"terms"</span>: {
+        <span class="key">"field"</span>: <span class="string">"severity"</span>
+      }
+    },
+    <span class="key">"over_time"</span>: {
+      <span class="key">"date_histogram"</span>: {
+        <span class="key">"field"</span>: <span class="string">"timestamp"</span>,
+        <span class="key">"calendar_interval"</span>: <span class="string">"1h"</span>
+      }
+    }
+  }
+}
+
+<span class="comment">// Returns: 
+// - Count per drone
+// - Count per severity
+// - Timeline of failures by hour</span></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flow-arrow">⬇️</div>
+        
+        <!-- SCENARIO 4: Telemetry Stream -->
+        <div class="scenario">
+            <div class="scenario-title">
+                📊 SCENARIO 4: Simulation Tick → Store Telemetry
+            </div>
+            
+            <div class="timeline">
+                <!-- Step 1: Simulation Updates -->
+                <div class="step backend">
+                    <div class="step-header">
+                        <span class="step-number">1</span>
+                        <span class="step-title">Simulation Tick (every 100ms)</span>
+                        <span class="step-time">~5ms</span>
+                    </div>
+                    
+                    <div class="code-block">
+                        <div class="code-title">⚙️ C# Code:</div>
+<span class="key">var</span> telemetry = <span class="key">new</span> DroneTelemetry {
+    DroneId = <span class="string">"drone-1"</span>,
+    Timestamp = DateTime.UtcNow,
+    Latitude = <span class="number">32.766</span>,
+    Longitude = <span class="number">35.038</span>,
+    Altitude = <span class="number">52.3</span>,
+    Speed = <span class="number">14.8</span>,
+    Heading = <span class="number">87.5</span>,
+    BatteryPercent = <span class="number">85.2</span>,
+    SignalStrength = <span class="number">-45</span>
+};</div>
+                </div>
+                
+                <!-- Step 2: Redis (Recent Only) -->
+                <div class="step redis">
+                    <div class="step-header">
+                        <span class="step-number">2</span>
+                        <span class="step-title">Store Recent in Redis</span>
+                        <span class="step-time">~2ms</span>
+                    </div>
+                    
+                    <div class="code-block">
+                        <div class="code-title">📋 Redis Commands:</div>
+<span class="comment">// Add to list (keep last 100 points = 10 seconds at 100ms tick)</span>
+<span class="key">LPUSH</span> drone:drone-1:telemetry {
+  <span class="string">"t"</span>: <span class="number">1738337712456</span>,
+  <span class="string">"lat"</span>: <span class="number">32.766</span>,
+  <span class="string">"lng"</span>: <span class="number">35.038</span>,
+  <span class="string">"alt"</span>: <span class="number">52.3</span>,
+  <span class="string">"spd"</span>: <span class="number">14.8</span>,
+  <span class="string">"bat"</span>: <span class="number">85.2</span>
+}
+
+<span class="comment">// Trim to keep only last 100</span>
+<span class="key">LTRIM</span> drone:drone-1:telemetry <span class="number">0</span> <span class="number">99</span>
+
+<span class="comment">// Set expiry (5 minutes if no updates)</span>
+<span class="key">EXPIRE</span> drone:drone-1:telemetry <span class="number">300</span></div>
+                    
+                    <div class="note">
+                        <div class="note-title">💡 Why Not Every Point to DB?</div>
+                        • 10 drones × 10 ticks/sec = 100 INSERTs/sec<br>
+                        • Over 1 day = 8.6 million records!<br>
+                        • Redis keeps "recent" (last 10 seconds) for real-time display<br>
+                        • PostgreSQL stores 1 point per second (downsampled)
+                    </div>
+                </div>
+                
+                <!-- Step 3: PostgreSQL (Downsampled) -->
+                <div class="step postgres">
+                    <div class="step-header">
+                        <span class="step-number">3</span>
+                        <span class="step-title">Save to PostgreSQL (1/sec)</span>
+                        <span class="step-time">~10ms</span>
+                    </div>
+                    
+                    <div class="data-structure">
+                        <div class="ds-title">💾 DroneTelemetry Table (1 insert per second):</div>
+                        <div class="table-structure">
+                            <div class="table-header">Column</div>
+                            <div class="table-header">Type</div>
+                            <div class="table-header">Value</div>
+                            
+                            <div class="table-cell">Id</div>
+                            <div class="table-cell">BIGINT</div>
+                            <div class="table-cell">127845 (auto-increment)</div>
+                            
+                            <div class="table-cell">DroneId</div>
+                            <div class="table-cell">GUID</div>
+                            <div class="table-cell">drone-1</div>
+                            
+                            <div class="table-cell">Timestamp</div>
+                            <div class="table-cell">DATETIME2</div>
+                            <div class="table-cell">2026-01-31 14:35:12</div>
+                            
+                            <div class="table-cell">Latitude</div>
+                            <div class="table-cell">DECIMAL(10,7)</div>
+                            <div class="table-cell">32.7660000</div>
+                            
+                            <div class="table-cell">Longitude</div>
+                            <div class="table-cell">DECIMAL(10,7)</div>
+                            <div class="table-cell">35.0380000</div>
+                            
+                            <div class="table-cell">Altitude</div>
+                            <div class="table-cell">DECIMAL(8,2)</div>
+                            <div class="table-cell">52.30</div>
+                            
+                            <div class="table-cell">Speed</div>
+                            <div class="table-cell">DECIMAL(6,2)</div>
+                            <div class="table-cell">14.80</div>
+                            
+                            <div class="table-cell">BatteryPercent</div>
+                            <div class="table-cell">DECIMAL(5,2)</div>
+                            <div class="table-cell">85.20</div>
+                        </div>
+                        
+                        <div class="note">
+                            <div class="note-title">📈 Index Strategy:</div>
+                            • <strong>Clustered Index:</strong> (DroneId, Timestamp DESC)<br>
+                            • <strong>Partitioning:</strong> By month (drone_telemetry_2026_01, ...)<br>
+                            • <strong>Retention:</strong> Keep 3 months, archive older data
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 4: Elasticsearch (Bulk, Every 10s) -->
+                <div class="step elasticsearch">
+                    <div class="step-header">
+                        <span class="step-number">4</span>
+                        <span class="step-title">Bulk Index to Elasticsearch</span>
+                        <span class="step-time">~100ms (batch)</span>
+                    </div>
+                    
+                    <div class="code-block">
+                        <div class="code-title">🔍 Bulk Index (every 10 seconds):</div>
+<span class="key">POST</span> /_bulk
+{<span class="key">"index"</span>: {<span class="key">"_index"</span>: <span class="string">"drone-telemetry-2026.01"</span>}}
+{<span class="key">"droneId"</span>: <span class="string">"drone-1"</span>, <span class="key">"timestamp"</span>: <span class="string">"2026-01-31T14:35:12Z"</span>, <span class="key">"battery"</span>: <span class="number">85.2</span>, ...}
+{<span class="key">"index"</span>: {<span class="key">"_index"</span>: <span class="string">"drone-telemetry-2026.01"</span>}}
+{<span class="key">"droneId"</span>: <span class="string">"drone-1"</span>, <span class="key">"timestamp"</span>: <span class="string">"2026-01-31T14:35:13Z"</span>, <span class="key">"battery"</span>: <span class="number">85.1</span>, ...}
+<span class="comment">// ... 100 documents at once</span></div>
+                    
+                    <div class="note">
+                        <div class="note-title">💡 Why Elasticsearch for Telemetry?</div>
+                        <strong>Use Cases:</strong><br>
+                        • "Show me all flights where battery dropped below 20%"<br>
+                        • "Aggregated battery drain over last 30 days"<br>
+                        • "Correlation: altitude vs battery drain rate"<br>
+                        • "Geo queries: all telemetry within 5km radius"<br><br>
+                        <strong>SQL would require:</strong><br>
+                        Complex JOINs, slow WHERE clauses, manual aggregations
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Summary -->
+        <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 3px solid #22c55e; border-radius: 15px; padding: 30px; margin-top: 40px;">
+            <h2 style="color: #166534; margin-bottom: 20px; font-family: 'Segoe UI', sans-serif;">✅ Summary: What Goes Where</h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <div style="background: white; padding: 20px; border-radius: 10px; border-left: 5px solid #f59e0b;">
+                    <h3 style="color: #f59e0b; margin-bottom: 15px; font-family: 'Segoe UI', sans-serif;">⚡ Redis</h3>
+                    <div style="font-family: 'Courier New', monospace; font-size: 0.85em; line-height: 1.8;">
+                        <strong>Drone State (5s TTL):</strong><br>
+                        drone:{id}:state<br><br>
+                        
+                        <strong>Alert Counter (60s):</strong><br>
+                        drone:{id}:alerts:count<br><br>
+                        
+                        <strong>Recent Alerts (Sorted Set):</strong><br>
+                        drone:{id}:alerts:recent<br><br>
+                        
+                        <strong>Telemetry (Last 100):</strong><br>
+                        drone:{id}:telemetry<br><br>
+                        
+                        <strong>Commands History:</strong><br>
+                        drone:{id}:commands
+                    </div>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 10px; border-left: 5px solid #ef4444;">
+                    <h3 style="color: #ef4444; margin-bottom: 15px; font-family: 'Segoe UI', sans-serif;">💾 PostgreSQL</h3>
+                    <div style="font-family: 'Courier New', monospace; font-size: 0.85em; line-height: 1.8;">
+                        <strong>Drones (Master Data):</strong><br>
+                        • All drone info<br>
+                        • Current status<br><br>
+                        
+                        <strong>DroneEvents (All):</strong><br>
+                        • Every alert/event<br>
+                        • Permanent storage<br><br>
+                        
+                        <strong>DroneTelemetry:</strong><br>
+                        • 1 point/second<br>
+                        • Historical data<br>
+                        • Partitioned by month<br><br>
+                        
+                        <strong>Missions:</strong><br>
+                        • Flight plans<br>
+                        • Waypoints
+                    </div>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 10px; border-left: 5px solid #06b6d4;">
+                    <h3 style="color: #06b6d4; margin-bottom: 15px; font-family: 'Segoe UI', sans-serif;">🔍 Elasticsearch</h3>
+                    <div style="font-family: 'Courier New', monospace; font-size: 0.85em; line-height: 1.8;">
+                        <strong>drone-events-YYYY.MM:</strong><br>
+                        • Full-text searchable<br>
+                        • All events<br>
+                        • Monthly indices<br><br>
+                        
+                        <strong>drone-telemetry-YYYY.MM:</strong><br>
+                        • Analytics queries<br>
+                        • Aggregations<br>
+                        • Geo queries<br><br>
+                        
+                        <strong>Use For:</strong><br>
+                        • "engine failure"<br>
+                        • Battery patterns<br>
+                        • Correlations
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

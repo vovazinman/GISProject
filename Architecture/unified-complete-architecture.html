@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Drone System - Complete Unified Architecture</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow-x: auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        /* Main Grid Architecture */
+        .architecture-grid {
+            position: relative;
+            min-width: 1800px;
+            background: #f7fafc;
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 40px;
+        }
+        
+        /* Layer Labels (Left Side) */
+        .layer-labels {
+            position: absolute;
+            left: 0;
+            top: 100px;
+            width: 180px;
+        }
+        
+        .layer-label {
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1em;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .layer-1 { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+        .layer-2 { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .layer-3 { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+        .layer-4 { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .layer-5 { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        
+        /* Component Grid */
+        .components-grid {
+            margin-left: 200px;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(5, 180px);
+            gap: 20px;
+        }
+        
+        .component-box {
+            background: white;
+            border: 3px solid;
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .component-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            z-index: 10;
+        }
+        
+        .component-header {
+            font-weight: bold;
+            font-size: 1em;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid;
+        }
+        
+        .component-content {
+            font-size: 0.75em;
+            line-height: 1.5;
+            color: #4a5568;
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .tech-badge {
+            position: absolute;
+            top: -12px;
+            right: 10px;
+            background: #fbbf24;
+            color: #78350f;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .data-detail {
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: 6px;
+            padding: 8px;
+            margin-top: 8px;
+            font-size: 0.7em;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* Grid Positioning */
+        /* Row 1: Presentation Layer */
+        .frontend { grid-column: 1; grid-row: 1; border-color: #3b82f6; }
+        .frontend .component-header { color: #3b82f6; border-color: #3b82f6; }
+        
+        .api-gateway { grid-column: 2; grid-row: 1; border-color: #3b82f6; }
+        .api-gateway .component-header { color: #3b82f6; border-color: #3b82f6; }
+        
+        .signalr { grid-column: 3; grid-row: 1; border-color: #3b82f6; }
+        .signalr .component-header { color: #3b82f6; border-color: #3b82f6; }
+        
+        .dtos { grid-column: 4; grid-row: 1; border-color: #3b82f6; }
+        .dtos .component-header { color: #3b82f6; border-color: #3b82f6; }
+        
+        /* Row 2: Application Layer */
+        .app-services { grid-column: 1 / span 2; grid-row: 2; border-color: #10b981; }
+        .app-services .component-header { color: #10b981; border-color: #10b981; }
+        
+        .orchestration { grid-column: 3; grid-row: 2; border-color: #10b981; }
+        .orchestration .component-header { color: #10b981; border-color: #10b981; }
+        
+        .external-integration { grid-column: 4; grid-row: 2; border-color: #10b981; }
+        .external-integration .component-header { color: #10b981; border-color: #10b981; }
+        
+        /* Row 3: Domain Layer */
+        .entities { grid-column: 1; grid-row: 3; border-color: #8b5cf6; }
+        .entities .component-header { color: #8b5cf6; border-color: #8b5cf6; }
+        
+        .domain-services { grid-column: 2; grid-row: 3; border-color: #8b5cf6; }
+        .domain-services .component-header { color: #8b5cf6; border-color: #8b5cf6; }
+        
+        .ai-layer { grid-column: 3; grid-row: 3; border-color: #8b5cf6; background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); }
+        .ai-layer .component-header { color: #6b21a8; border-color: #a78bfa; }
+        
+        .physics { grid-column: 4; grid-row: 3; border-color: #8b5cf6; background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); }
+        .physics .component-header { color: #6b21a8; border-color: #a78bfa; }
+        
+        /* Row 4: Infrastructure Layer */
+        .repositories { grid-column: 1; grid-row: 4; border-color: #ef4444; }
+        .repositories .component-header { color: #ef4444; border-color: #ef4444; }
+        
+        .redis-infra { grid-column: 2; grid-row: 4; border-color: #ef4444; }
+        .redis-infra .component-header { color: #ef4444; border-color: #ef4444; }
+        
+        .postgres-infra { grid-column: 3; grid-row: 4; border-color: #ef4444; }
+        .postgres-infra .component-header { color: #ef4444; border-color: #ef4444; }
+        
+        .elasticsearch-infra { grid-column: 4; grid-row: 4; border-color: #ef4444; }
+        .elasticsearch-infra .component-header { color: #ef4444; border-color: #ef4444; }
+        
+        .external-apis { grid-column: 5; grid-row: 4; border-color: #ef4444; }
+        .external-apis .component-header { color: #ef4444; border-color: #ef4444; }
+        
+        /* Row 5: Cross-Cutting */
+        .logging { grid-column: 1; grid-row: 5; border-color: #f59e0b; }
+        .logging .component-header { color: #f59e0b; border-color: #f59e0b; }
+        
+        .security { grid-column: 2; grid-row: 5; border-color: #f59e0b; }
+        .security .component-header { color: #f59e0b; border-color: #f59e0b; }
+        
+        .monitoring { grid-column: 3; grid-row: 5; border-color: #f59e0b; }
+        .monitoring .component-header { color: #f59e0b; border-color: #f59e0b; }
+        
+        .caching { grid-column: 4; grid-row: 5; border-color: #f59e0b; }
+        .caching .component-header { color: #f59e0b; border-color: #f59e0b; }
+        
+        /* Flow Arrows */
+        .flow-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .flow-arrow {
+            position: absolute;
+            background: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75em;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            border: 2px solid;
+            z-index: 100;
+        }
+        
+        .flow-1 { color: #3b82f6; border-color: #3b82f6; }
+        .flow-2 { color: #10b981; border-color: #10b981; }
+        .flow-3 { color: #8b5cf6; border-color: #8b5cf6; }
+        .flow-4 { color: #ef4444; border-color: #ef4444; }
+        
+        .step-num {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 20px;
+            font-size: 0.85em;
+            margin-right: 4px;
+        }
+        
+        /* Legend */
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .legend-item {
+            background: white;
+            border: 3px solid;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .legend-1 { border-color: #3b82f6; color: #3b82f6; }
+        .legend-2 { border-color: #10b981; color: #10b981; }
+        .legend-3 { border-color: #8b5cf6; color: #8b5cf6; }
+        .legend-4 { border-color: #ef4444; color: #ef4444; }
+        .legend-5 { border-color: #f59e0b; color: #f59e0b; }
+        
+        /* Scenario Boxes */
+        .scenarios {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 40px;
+        }
+        
+        .scenario {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 3px solid #0284c7;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .scenario-title {
+            font-weight: bold;
+            color: #0c4a6e;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .scenario-flow {
+            font-size: 0.85em;
+            line-height: 2;
+            color: #0369a1;
+        }
+        
+        .scenario-flow span {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin: 2px;
+            font-weight: 600;
+        }
+        
+        .s-presentation { background: #dbeafe; color: #1e40af; }
+        .s-application { background: #d1fae5; color: #065f46; }
+        .s-domain { background: #ede9fe; color: #5b21b6; }
+        .s-infrastructure { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏗️ Multi-Drone System - Complete Unified Architecture</h1>
+        <p class="subtitle">Multi-Layer Architecture + Data Flow + Storage Details - All in One View</p>
+        
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item legend-1">
+                Layer 1<br>Presentation<br>
+                <span style="font-size: 0.8em;">(API, UI, SignalR)</span>
+            </div>
+            <div class="legend-item legend-2">
+                Layer 2<br>Application<br>
+                <span style="font-size: 0.8em;">(Services, Logic)</span>
+            </div>
+            <div class="legend-item legend-3">
+                Layer 3<br>Domain<br>
+                <span style="font-size: 0.8em;">(Core, AI, Physics)</span>
+            </div>
+            <div class="legend-item legend-4">
+                Layer 4<br>Infrastructure<br>
+                <span style="font-size: 0.8em;">(DB, Cache, External)</span>
+            </div>
+            <div class="legend-item legend-5">
+                Layer 5<br>Cross-Cutting<br>
+                <span style="font-size: 0.8em;">(Logging, Security)</span>
+            </div>
+        </div>
+        
+        <!-- Main Architecture Grid -->
+        <div class="architecture-grid">
+            <!-- Layer Labels -->
+            <div class="layer-labels">
+                <div class="layer-label layer-1">
+                    1️⃣<br>PRESENTATION<br>LAYER
+                </div>
+                <div class="layer-label layer-2">
+                    2️⃣<br>APPLICATION<br>LAYER
+                </div>
+                <div class="layer-label layer-3">
+                    3️⃣<br>DOMAIN<br>LAYER
+                </div>
+                <div class="layer-label layer-4">
+                    4️⃣<br>INFRASTRUCTURE<br>LAYER
+                </div>
+                <div class="layer-label layer-5">
+                    5️⃣<br>CROSS-CUTTING<br>CONCERNS
+                </div>
+            </div>
+            
+            <!-- Components Grid -->
+            <div class="components-grid">
+                <!-- Row 1: Presentation Layer -->
+                <div class="component-box frontend">
+                    <span class="tech-badge">React</span>
+                    <div class="component-header">🎨 Frontend</div>
+                    <div class="component-content">
+                        <strong>User Interface</strong><br><br>
+                        • Map Component<br>
+                        • Alert Dashboard<br>
+                        • Telemetry Charts<br>
+                        • Search Interface<br>
+                        • Control Panel<br><br>
+                        <strong>State:</strong><br>
+                        React Hooks<br>
+                        Real-time updates
+                    </div>
+                </div>
+                
+                <div class="component-box api-gateway">
+                    <span class="tech-badge">ASP.NET</span>
+                    <div class="component-header">🚪 Controllers</div>
+                    <div class="component-content">
+                        <strong>REST Endpoints</strong><br><br>
+                        • DroneController<br>
+                        • AlertController<br>
+                        • TelemetryController<br>
+                        • SearchController<br><br>
+                        <strong>Middleware:</strong><br>
+                        JWT Auth, CORS,<br>
+                        Rate Limiting
+                    </div>
+                </div>
+                
+                <div class="component-box signalr">
+                    <span class="tech-badge">SignalR</span>
+                    <div class="component-header">📡 Hubs</div>
+                    <div class="component-content">
+                        <strong>Real-time</strong><br><br>
+                        • DroneHub<br>
+                        • AlertHub<br>
+                        • TelemetryHub<br><br>
+                        <strong>Events:</strong><br>
+                        DroneStateUpdated<br>
+                        AlertReceived<br>
+                        FlightPathUpdated
+                    </div>
+                </div>
+                
+                <div class="component-box dtos">
+                    <span class="tech-badge">Models</span>
+                    <div class="component-header">📋 DTOs</div>
+                    <div class="component-content">
+                        <strong>Data Transfer</strong><br><br>
+                        • DroneStateDto<br>
+                        • AlertDto<br>
+                        • CommandDto<br>
+                        • TelemetryDto<br><br>
+                        <strong>Mapping:</strong><br>
+                        AutoMapper<br>
+                        Entity ↔ DTO
+                    </div>
+                </div>
+                
+                <!-- Row 2: Application Layer -->
+                <div class="component-box app-services">
+                    <span class="tech-badge">.NET Core</span>
+                    <div class="component-header">⚙️ Services / Use Cases</div>
+                    <div class="component-content">
+                        <strong>Business Logic</strong><br><br>
+                        • DroneService<br>
+                        • FleetManager<br>
+                        • MissionService<br>
+                        • AlertManager<br>
+                        • TelemetryService<br><br>
+                        <strong>Responsibilities:</strong><br>
+                        • Validation<br>
+                        • Orchestration<br>
+                        • Transaction management
+                    </div>
+                </div>
+                
+                <div class="component-box orchestration">
+                    <span class="tech-badge">CQRS</span>
+                    <div class="component-header">🔄 Handlers</div>
+                    <div class="component-content">
+                        <strong>Command/Query</strong><br><br>
+                        • Command Handlers<br>
+                        • Query Handlers<br>
+                        • Event Handlers<br><br>
+                        <strong>Patterns:</strong><br>
+                        CQRS<br>
+                        Mediator<br>
+                        Unit of Work
+                    </div>
+                </div>
+                
+                <div class="component-box external-integration">
+                    <span class="tech-badge">HTTP</span>
+                    <div class="component-header">🌐 Integration</div>
+                    <div class="component-content">
+                        <strong>External Services</strong><br><br>
+                        • WeatherService<br>
+                        • CacheService<br>
+                        • SearchService<br>
+                        • NotificationService<br><br>
+                        <strong>Patterns:</strong><br>
+                        Circuit Breaker<br>
+                        Retry with Polly
+                    </div>
+                </div>
+                
+                <!-- Row 3: Domain Layer -->
+                <div class="component-box entities">
+                    <span class="tech-badge">Core</span>
+                    <div class="component-header">🚁 Entities</div>
+                    <div class="component-content">
+                        <strong>Domain Models</strong><br><br>
+                        • Drone<br>
+                        • Mission<br>
+                        • FlightPath<br>
+                        • DroneEvent<br>
+                        • Telemetry<br><br>
+                        <strong>Value Objects:</strong><br>
+                        Position, Velocity,<br>
+                        BatteryLevel
+                    </div>
+                </div>
+                
+                <div class="component-box domain-services">
+                    <span class="tech-badge">Logic</span>
+                    <div class="component-header">📐 Domain Services</div>
+                    <div class="component-content">
+                        <strong>Core Business</strong><br><br>
+                        • FlightCalculator<br>
+                        • PathPlanner<br>
+                        • CollisionDetector<br>
+                        • BatteryEstimator<br>
+                        • SafetyValidator<br><br>
+                        <strong>Pure logic</strong><br>
+                        No dependencies
+                    </div>
+                </div>
+                
+                <div class="component-box ai-layer">
+                    <span class="tech-badge">AI</span>
+                    <div class="component-header">🤖 AI Subsystem</div>
+                    <div class="component-content">
+                        <strong>Intelligence</strong><br><br>
+                        • Pathfinding (A*)<br>
+                        • Obstacle Avoid<br>
+                        • Swarm Logic<br>
+                        • ML Models<br>
+                        • Decision Trees<br><br>
+                        <strong>Algorithms:</strong><br>
+                        RRT, Dijkstra,<br>
+                        Neural Networks
+                    </div>
+                </div>
+                
+                <div class="component-box physics">
+                    <span class="tech-badge">Physics</span>
+                    <div class="component-header">⚙️ Physics Engine</div>
+                    <div class="component-content">
+                        <strong>Simulation</strong><br><br>
+                        • Kinematics<br>
+                        • Dynamics<br>
+                        • Wind Model<br>
+                        • Gravity Effects<br>
+                        • Motor Control<br><br>
+                        <strong>Tick Rate:</strong><br>
+                        100ms (10Hz)
+                    </div>
+                </div>
+                
+                <!-- Row 4: Infrastructure Layer -->
+                <div class="component-box repositories">
+                    <span class="tech-badge">EF Core</span>
+                    <div class="component-header">💾 Repositories</div>
+                    <div class="component-content">
+                        <strong>Data Access</strong><br><br>
+                        • DroneRepository<br>
+                        • EventRepository<br>
+                        • TelemetryRepo<br>
+                        • MissionRepo<br><br>
+                        <strong>Pattern:</strong><br>
+                        Repository<br>
+                        Unit of Work
+                    </div>
+                </div>
+                
+                <div class="component-box redis-infra">
+                    <span class="tech-badge">Redis</span>
+                    <div class="component-header">⚡ Cache</div>
+                    <div class="component-content">
+                        <strong>In-Memory Store</strong><br>
+                        <div class="data-detail">
+                            <strong>Keys:</strong><br>
+                            drone:{id}:state<br>
+                            TTL: 5s<br><br>
+                            drone:{id}:alerts<br>
+                            TTL: 60s<br><br>
+                            <strong>Perf:</strong> 1-3ms
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="component-box postgres-infra">
+                    <span class="tech-badge">PostgreSQL</span>
+                    <div class="component-header">🗄️ Database</div>
+                    <div class="component-content">
+                        <strong>Primary DB</strong><br>
+                        <div class="data-detail">
+                            <strong>Tables:</strong><br>
+                            • Drones<br>
+                            • DroneEvents<br>
+                            • DroneTelemetry<br>
+                            • Missions<br><br>
+                            <strong>Indexes:</strong><br>
+                            (DroneId, Time)
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="component-box elasticsearch-infra">
+                    <span class="tech-badge">Elasticsearch</span>
+                    <div class="component-header">🔍 Search</div>
+                    <div class="component-content">
+                        <strong>Search Engine</strong><br>
+                        <div class="data-detail">
+                            <strong>Indices:</strong><br>
+                            drone-events-<br>
+                            2026.01<br><br>
+                            drone-telemetry-<br>
+                            2026.01<br><br>
+                            <strong>Query:</strong> < 50ms
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="component-box external-apis">
+                    <span class="tech-badge">HTTP</span>
+                    <div class="component-header">🌤️ External APIs</div>
+                    <div class="component-content">
+                        <strong>Third-party</strong><br><br>
+                        • Weather API<br>
+                        • No-Fly Zones<br>
+                        • SMS Gateway<br>
+                        • Email Service<br><br>
+                        <strong>Pattern:</strong><br>
+                        Retry + Circuit<br>
+                        Breaker
+                    </div>
+                </div>
+                
+                <!-- Row 5: Cross-Cutting -->
+                <div class="component-box logging">
+                    <span class="tech-badge">Serilog</span>
+                    <div class="component-header">📝 Logging</div>
+                    <div class="component-content">
+                        <strong>Structured Logs</strong><br><br>
+                        • Serilog<br>
+                        • Log Levels<br>
+                        • Correlation IDs<br><br>
+                        <strong>Sinks:</strong><br>
+                        Console, File,<br>
+                        Seq, Elasticsearch
+                    </div>
+                </div>
+                
+                <div class="component-box security">
+                    <span class="tech-badge">JWT</span>
+                    <div class="component-header">🔒 Security</div>
+                    <div class="component-content">
+                        <strong>Auth & Authz</strong><br><br>
+                        • JWT Tokens<br>
+                        • Role-based Auth<br>
+                        • API Keys<br>
+                        • Rate Limiting<br><br>
+                        <strong>Standards:</strong><br>
+                        OAuth 2.0<br>
+                        OpenID Connect
+                    </div>
+                </div>
+                
+                <div class="component-box monitoring">
+                    <span class="tech-badge">Metrics</span>
+                    <div class="component-header">📊 Monitoring</div>
+                    <div class="component-content">
+                        <strong>Observability</strong><br><br>
+                        • Health Checks<br>
+                        • Metrics<br>
+                        • Distributed Trace<br>
+                        • Error Tracking<br><br>
+                        <strong>Tools:</strong><br>
+                        Prometheus,<br>
+                        Grafana
+                    </div>
+                </div>
+                
+                <div class="component-box caching">
+                    <span class="tech-badge">Strategy</span>
+                    <div class="component-header">⚡ Caching</div>
+                    <div class="component-content">
+                        <strong>Performance</strong><br><br>
+                        • Cache-Aside<br>
+                        • Write-Through<br>
+                        • Invalidation<br><br>
+                        <strong>Tools:</strong><br>
+                        Redis<br>
+                        In-Memory Cache<br>
+                        Response Cache
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Flow Arrows Overlay -->
+            <div class="flow-overlay">
+                <svg width="100%" height="100%">
+                    <!-- Vertical dependencies -->
+                    <defs>
+                        <marker id="arrowblue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#3b82f6" />
+                        </marker>
+                        <marker id="arrowgreen" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#10b981" />
+                        </marker>
+                        <marker id="arrowpurple" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#8b5cf6" />
+                        </marker>
+                        <marker id="arrowred" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#ef4444" />
+                        </marker>
+                    </defs>
+                    
+                    <!-- Presentation to Application -->
+                    <line x1="400" y1="190" x2="400" y2="210" stroke="#3b82f6" stroke-width="3" stroke-dasharray="5,5" marker-end="url(#arrowblue)"/>
+                    
+                    <!-- Application to Domain -->
+                    <line x1="400" y1="390" x2="400" y2="410" stroke="#10b981" stroke-width="3" stroke-dasharray="5,5" marker-end="url(#arrowgreen)"/>
+                    
+                    <!-- Domain to Infrastructure -->
+                    <line x1="400" y1="590" x2="400" y2="610" stroke="#8b5cf6" stroke-width="3" stroke-dasharray="5,5" marker-end="url(#arrowpurple)"/>
+                </svg>
+                
+                <!-- Flow Labels -->
+                <div class="flow-arrow flow-1" style="left: 420px; top: 170px;">
+                    <span class="step-num">1</span> User Request
+                </div>
+                <div class="flow-arrow flow-2" style="left: 420px; top: 370px;">
+                    <span class="step-num">2</span> Business Logic
+                </div>
+                <div class="flow-arrow flow-3" style="left: 420px; top: 570px;">
+                    <span class="step-num">3</span> Data Access
+                </div>
+            </div>
+        </div>
+        
+        <!-- Detailed Flow Scenarios -->
+        <div class="scenarios">
+            <div class="scenario">
+                <div class="scenario-title">🎯 SCENARIO 1: User Clicks Map</div>
+                <div class="scenario-flow">
+                    <span class="s-presentation">1. Frontend</span> →
+                    <span class="s-presentation">2. Controllers</span> →
+                    <span class="s-application">3. DroneService</span> →
+                    <span class="s-domain">4. Domain Logic</span> →
+                    <span class="s-application">5. CacheService</span> →
+                    <span class="s-infrastructure">6. Redis Check</span> →
+                    <span class="s-infrastructure">7. PostgreSQL Save</span> →
+                    <span class="s-infrastructure">8. ES Index</span> →
+                    <span class="s-presentation">9. SignalR Broadcast</span> →
+                    <span class="s-presentation">10. Frontend Update</span>
+                </div>
+            </div>
+            
+            <div class="scenario">
+                <div class="scenario-title">⚠️ SCENARIO 2: Weather Alert</div>
+                <div class="scenario-flow">
+                    <span class="s-application">1. WeatherService</span> →
+                    <span class="s-infrastructure">2. External API</span> →
+                    <span class="s-application">3. AlertManager</span> →
+                    <span class="s-domain">4. Domain Validation</span> →
+                    <span class="s-infrastructure">5. PostgreSQL Insert</span> →
+                    <span class="s-infrastructure">6. Redis INCR</span> →
+                    <span class="s-infrastructure">7. ES Index</span> →
+                    <span class="s-presentation">8. SignalR Push</span> →
+                    <span class="s-presentation">9. Toast Notification</span>
+                </div>
+            </div>
+            
+            <div class="scenario">
+                <div class="scenario-title">🔍 SCENARIO 3: Search Alerts</div>
+                <div class="scenario-flow">
+                    <span class="s-presentation">1. Frontend Search</span> →
+                    <span class="s-presentation">2. SearchController</span> →
+                    <span class="s-application">3. SearchService</span> →
+                    <span class="s-infrastructure">4. Elasticsearch Query</span> →
+                    <span class="s-infrastructure">5. Full-text Match</span> →
+                    <span class="s-infrastructure">6. Aggregations</span> →
+                    <span class="s-application">7. Map to DTOs</span> →
+                    <span class="s-presentation">8. Return Results</span> →
+                    <span class="s-presentation">9. Display (< 50ms)</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Summary -->
+        <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 3px solid #22c55e; border-radius: 15px; padding: 30px; margin-top: 40px;">
+            <h2 style="color: #166534; margin-bottom: 20px;">✅ Architecture Principles</h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <div style="background: white; padding: 20px; border-radius: 10px; border-left: 5px solid #22c55e;">
+                    <h3 style="color: #166534; margin-bottom: 10px;">🎯 Separation of Concerns</h3>
+                    <p style="color: #4a5568; line-height: 1.6; font-size: 0.9em;">
+                        Each layer has a single responsibility. Presentation handles UI, Application orchestrates business logic, Domain contains core rules, Infrastructure manages data.
+                    </p>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 10px; border-left: 5px solid #22c55e;">
+                    <h3 style="color: #166534; margin-bottom: 10px;">⬇️ Dependency Flow</h3>
+                    <p style="color: #4a5568; line-height: 1.6; font-size: 0.9em;">
+                        Dependencies flow inward: Presentation → Application → Domain ← Infrastructure. Domain is independent and reusable across different UIs and databases.
+                    </p>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 10px; border-left: 5px solid #22c55e;">
+                    <h3 style="color: #166534; margin-bottom: 10px;">🔄 Data Flow</h3>
+                    <p style="color: #4a5568; line-height: 1.6; font-size: 0.9em;">
+                        Horizontal flow: User → API → Services → Domain Logic → Cache Check → Database → Search Index → Real-time Broadcast → UI Update (complete cycle).
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

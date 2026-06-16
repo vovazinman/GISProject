@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Drone System — Sequence Diagrams</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e17;
+    --surface: #0d1220;
+    --border: #1e2d4a;
+    --accent1: #00d4ff;
+    --accent2: #00ff9d;
+    --accent3: #ff6b35;
+    --accent4: #a855f7;
+    --accent5: #fbbf24;
+    --text: #c8d6e8;
+    --text-dim: #4a6080;
+    --glow-blue: 0 0 12px rgba(0,212,255,0.5);
+    --glow-green: 0 0 12px rgba(0,255,157,0.5);
+    --glow-orange: 0 0 12px rgba(255,107,53,0.5);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content:'';
+    position:fixed; top:0; left:0; right:0; bottom:0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,212,255,0.015) 2px, rgba(0,212,255,0.015) 4px);
+    pointer-events:none; z-index:1000;
+  }
+
+  header {
+    text-align:center;
+    padding: 36px 20px 20px;
+    position:relative;
+  }
+
+  header::after {
+    content:'';
+    position:absolute; bottom:0; left:10%; right:10%;
+    height:1px;
+    background: linear-gradient(90deg, transparent, var(--accent1), transparent);
+  }
+
+  h1 {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(1.2em, 3vw, 2em);
+    color: var(--accent1);
+    text-shadow: var(--glow-blue);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+
+  .subtitle {
+    font-size: 0.95em;
+    color: var(--text-dim);
+    margin-top: 6px;
+    letter-spacing: 2px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    padding: 24px 20px 0;
+    flex-wrap: wrap;
+  }
+
+  .tab-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 10px 22px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 0.9em;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    transition: all 0.25s;
+    position:relative;
+    overflow:hidden;
+  }
+
+  .tab-btn::before {
+    content:'';
+    position:absolute; top:0; left:-100%; width:100%; height:100%;
+    background: linear-gradient(90deg, transparent, rgba(0,212,255,0.08), transparent);
+    transition: left 0.4s;
+  }
+
+  .tab-btn:hover::before { left:100%; }
+
+  .tab-btn.active {
+    border-color: var(--accent1);
+    color: var(--accent1);
+    text-shadow: var(--glow-blue);
+    box-shadow: inset 0 0 20px rgba(0,212,255,0.1), var(--glow-blue);
+  }
+
+  .tab-btn[data-tab="2"].active { border-color:var(--accent3); color:var(--accent3); text-shadow:var(--glow-orange); box-shadow: inset 0 0 20px rgba(255,107,53,0.1), var(--glow-orange); }
+  .tab-btn[data-tab="3"].active { border-color:var(--accent2); color:var(--accent2); text-shadow:var(--glow-green); box-shadow: inset 0 0 20px rgba(0,255,157,0.1), var(--glow-green); }
+
+  /* Diagram container */
+  .diagram-wrap {
+    padding: 30px 20px 50px;
+    display:none;
+    animation: fadeIn 0.3s ease;
+  }
+  .diagram-wrap.active { display:block; }
+
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+  .scenario-label {
+    text-align:center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85em;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+    margin-bottom: 24px;
+  }
+
+  /* SVG Sequence Diagram */
+  .seq-container {
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+
+  svg.seq {
+    display:block;
+    margin: 0 auto;
+  }
+
+  /* Actor boxes */
+  .actor-box {
+    rx: 4;
+    stroke-width: 1.5;
+  }
+
+  .actor-text {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    letter-spacing: 0.5px;
+  }
+
+  .lifeline {
+    stroke-dasharray: 6,4;
+    stroke-width: 1;
+    opacity:0.4;
+  }
+
+  /* Message arrows */
+  .msg-line {
+    stroke-width: 1.8;
+    fill:none;
+  }
+
+  .msg-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    dominant-baseline: auto;
+  }
+
+  .activation-bar {
+    rx: 2;
+    opacity: 0.25;
+  }
+
+  /* Step dots */
+  .step-dot {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  /* Play button */
+  .play-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 auto 20px;
+    background: transparent;
+    border: 1px solid var(--accent1);
+    color: var(--accent1);
+    padding: 8px 20px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8em;
+    letter-spacing: 2px;
+    transition: all 0.2s;
+    width: fit-content;
+  }
+
+  .play-btn:hover {
+    background: rgba(0,212,255,0.1);
+    box-shadow: var(--glow-blue);
+  }
+
+  .play-btn[data-scenario="2"] { border-color:var(--accent3); color:var(--accent3); }
+  .play-btn[data-scenario="2"]:hover { background: rgba(255,107,53,0.1); box-shadow:var(--glow-orange); }
+  .play-btn[data-scenario="3"] { border-color:var(--accent2); color:var(--accent2); }
+  .play-btn[data-scenario="3"]:hover { background: rgba(0,255,157,0.1); box-shadow:var(--glow-green); }
+
+  /* Animated arrow */
+  @keyframes drawArrow {
+    from { stroke-dashoffset: 300; opacity:0; }
+    to   { stroke-dashoffset: 0;   opacity:1; }
+  }
+
+  @keyframes popLabel {
+    from { opacity:0; transform: translateY(4px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  .animated-arrow {
+    stroke-dasharray: 300;
+    stroke-dashoffset: 300;
+    opacity:0;
+    transition: stroke-dashoffset 0.4s ease, opacity 0.2s;
+  }
+
+  .animated-arrow.shown {
+    stroke-dashoffset: 0;
+    opacity:1;
+  }
+
+  .animated-label {
+    opacity:0;
+    transition: opacity 0.3s 0.3s;
+  }
+
+  .animated-label.shown { opacity:1; }
+
+  /* Return arrow dashed */
+  .return-line {
+    stroke-dasharray: 6,3;
+  }
+
+  /* Legend */
+  .legend {
+    display:flex;
+    justify-content:center;
+    gap: 24px;
+    padding: 0 20px 16px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-size:0.8em;
+    color:var(--text-dim);
+    letter-spacing:1px;
+  }
+
+  .legend-line {
+    width:28px;
+    height:2px;
+    border-radius:1px;
+  }
+
+  .legend-dashed {
+    width:28px;
+    height:0;
+    border-top: 2px dashed;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🚁 Multi-Drone System</h1>
+  <div class="subtitle">SEQUENCE DIAGRAMS — DATA FLOW ANALYSIS</div>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-line" style="background:#00d4ff"></div> Sync Call</div>
+  <div class="legend-item"><div class="legend-dashed" style="border-color:#00ff9d"></div> Async / Return</div>
+  <div class="legend-item"><div class="legend-line" style="background:#ff6b35"></div> External</div>
+  <div class="legend-item"><div class="legend-line" style="background:#a855f7"></div> Domain Logic</div>
+  <div class="legend-item"><div class="legend-line" style="background:#fbbf24"></div> Infrastructure</div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="1" onclick="switchTab(1)">🎯 Scenario 1 — User Clicks Map</button>
+  <button class="tab-btn" data-tab="2" onclick="switchTab(2)">⚠️ Scenario 2 — Weather Alert</button>
+  <button class="tab-btn" data-tab="3" onclick="switchTab(3)">🔍 Scenario 3 — Search Alerts</button>
+</div>
+
+<!-- SCENARIO 1 -->
+<div class="diagram-wrap active" id="tab-1">
+  <div class="scenario-label">// USER INTERACTION → FULL SYSTEM CYCLE</div>
+  <button class="play-btn" data-scenario="1" onclick="animateScenario(1)">▶ REPLAY ANIMATION</button>
+  <div class="seq-container">
+    <svg class="seq" id="svg1" width="1320" height="760" viewBox="0 0 1320 760"></svg>
+  </div>
+</div>
+
+<!-- SCENARIO 2 -->
+<div class="diagram-wrap" id="tab-2">
+  <div class="scenario-label">// BACKGROUND SERVICE → REAL-TIME ALERT PIPELINE</div>
+  <button class="play-btn" data-scenario="2" onclick="animateScenario(2)">▶ REPLAY ANIMATION</button>
+  <div class="seq-container">
+    <svg class="seq" id="svg2" width="1180" height="680" viewBox="0 0 1180 680"></svg>
+  </div>
+</div>
+
+<!-- SCENARIO 3 -->
+<div class="diagram-wrap" id="tab-3">
+  <div class="scenario-label">// SEARCH FLOW → ELASTICSEARCH → RESULTS</div>
+  <button class="play-btn" data-scenario="3" onclick="animateScenario(3)">▶ REPLAY ANIMATION</button>
+  <div class="seq-container">
+    <svg class="seq" id="svg3" width="900" height="600" viewBox="0 0 900 600"></svg>
+  </div>
+</div>
+
+<script>
+// ─── Color Palette ───────────────────────────────────────────
+const C = {
+  presentation: { fill:'#051525', stroke:'#00d4ff', text:'#00d4ff' },
+  application:  { fill:'#051a10', stroke:'#00ff9d', text:'#00ff9d' },
+  domain:       { fill:'#120820', stroke:'#a855f7', text:'#a855f7' },
+  infrastructure:{ fill:'#1a0a00', stroke:'#fbbf24', text:'#fbbf24' },
+  external:     { fill:'#1a0508', stroke:'#ff6b35', text:'#ff6b35' },
+};
+
+const ns = 'http://www.w3.org/2000/svg';
+
+function el(tag, attrs, text) {
+  const e = document.createElementNS(ns, tag);
+  for (const [k,v] of Object.entries(attrs||{})) e.setAttribute(k,v);
+  if (text) e.textContent = text;
+  return e;
+}
+
+// ─── Draw actor header ────────────────────────────────────────
+function drawActor(svg, x, y, label, sublabel, layer) {
+  const c = C[layer];
+  const w = 110, h = 50;
+  const g = el('g');
+  // box
+  g.appendChild(el('rect',{x:x-w/2, y:y, width:w, height:h, rx:4, fill:c.fill, stroke:c.stroke, 'stroke-width':'1.5'}));
+  // top accent
+  g.appendChild(el('rect',{x:x-w/2, y:y, width:w, height:3, rx:2, fill:c.stroke}));
+  // label
+  const t = el('text',{x:x, y:y+21, class:'actor-text', fill:c.text, 'font-size':'11'}, label);
+  g.appendChild(t);
+  if (sublabel) {
+    const s = el('text',{x:x, y:y+36, class:'actor-text', fill:c.text, 'font-size':'9', opacity:'0.6'}, sublabel);
+    g.appendChild(s);
+  }
+  svg.appendChild(g);
+}
+
+// ─── Draw lifeline ────────────────────────────────────────────
+function drawLifeline(svg, x, fromY, toY, layer) {
+  const c = C[layer];
+  svg.appendChild(el('line',{x1:x, y1:fromY, x2:x, y2:toY, stroke:c.stroke, 'stroke-dasharray':'5,4', 'stroke-width':'1', opacity:'0.3'}));
+}
+
+// ─── Draw bottom actor box ────────────────────────────────────
+function drawActorBottom(svg, x, y, label, sublabel, layer) {
+  drawActor(svg, x, y, label, sublabel, layer);
+}
+
+// ─── Draw message with animation ─────────────────────────────
+let msgRegistry = {}; // svgId -> list of {arrowEl, labelEl, dotEl}
+
+function drawMessage(svg, svgId, step, x1, x2, y, label, color, isReturn=false, note=null) {
+  if (!msgRegistry[svgId]) msgRegistry[svgId] = [];
+  const g = el('g', {class:'animated-arrow animated-label', id:`msg-${svgId}-${step}`});
+  g.style.opacity = '0';
+
+  const dir = x2 > x1 ? 1 : -1;
+  const xEnd = x2 + dir * (-8);
+
+  // Line
+  const line = el('line', {
+    x1: x1, y1: y, x2: xEnd, y2: y,
+    stroke: color, 'stroke-width': '1.8',
+    'stroke-dasharray': isReturn ? '6,3' : 'none',
+    fill:'none'
+  });
+  g.appendChild(line);
+
+  // Arrowhead
+  const ax = x2 + dir * (-2);
+  const arrow = el('polygon', {
+    points: dir > 0
+      ? `${ax-8},${y-5} ${ax},${y} ${ax-8},${y+5}`
+      : `${ax+8},${y-5} ${ax},${y} ${ax+8},${y+5}`,
+    fill: isReturn ? 'none' : color,
+    stroke: color, 'stroke-width':'1.5'
+  });
+  g.appendChild(arrow);
+
+  // Dot at origin
+  g.appendChild(el('circle',{cx:x1, cy:y, r:3, fill:color, opacity:'0.8'}));
+
+  // Label
+  const midX = (x1+x2)/2;
+  const labelBg = el('rect',{
+    x: midX-50, y: y-17, width:100, height:14, rx:2,
+    fill:'#0a0e17', opacity:'0.85'
+  });
+  g.appendChild(labelBg);
+  const labelEl = el('text',{
+    x: midX, y: y-7,
+    class:'msg-label',
+    fill: color,
+    'text-anchor':'middle',
+    'font-size':'10'
+  }, label);
+  g.appendChild(labelEl);
+
+  // Step number badge
+  const badge = el('g');
+  badge.appendChild(el('circle',{cx:x1+dir*12, cy:y, r:8, fill:color, opacity:'0.15', stroke:color, 'stroke-width':'1'}));
+  badge.appendChild(el('text',{
+    x:x1+dir*12, y:y, 'text-anchor':'middle', 'dominant-baseline':'middle',
+    fill:color, 'font-size':'8', 'font-family':'Share Tech Mono'
+  }, String(step)));
+  g.appendChild(badge);
+
+  if (note) {
+    g.appendChild(el('text',{
+      x: midX, y: y+13, fill:'#4a6080', 'font-size':'9',
+      'text-anchor':'middle','font-family':'Share Tech Mono'
+    }, note));
+  }
+
+  svg.appendChild(g);
+  msgRegistry[svgId].push(g);
+}
+
+// ─── Activate messages sequentially ──────────────────────────
+function animateSteps(svgId, delay=0) {
+  const msgs = msgRegistry[svgId] || [];
+  msgs.forEach((g, i) => {
+    g.style.opacity = '0';
+    g.style.transition = 'none';
+  });
+  msgs.forEach((g, i) => {
+    setTimeout(() => {
+      g.style.transition = 'opacity 0.35s ease';
+      g.style.opacity = '1';
+    }, delay + i * 420);
+  });
+}
+
+function animateScenario(n) {
+  msgRegistry[`svg${n}`] = msgRegistry[`svg${n}`] || [];
+  animateSteps(`svg${n}`, 100);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCENARIO 1: User Clicks Map
+// ═══════════════════════════════════════════════════════════════
+function buildScenario1() {
+  const svg = document.getElementById('svg1');
+  const id = 'svg1';
+  msgRegistry[id] = [];
+
+  // Actors: x positions
+  const actors = [
+    { x:80,   label:'Frontend',    sub:'React',      layer:'presentation' },
+    { x:210,  label:'Controllers', sub:'ASP.NET',     layer:'presentation' },
+    { x:340,  label:'DroneService',sub:'Application', layer:'application'  },
+    { x:470,  label:'CacheService',sub:'App Layer',   layer:'application'  },
+    { x:600,  label:'Domain Logic',sub:'Core',        layer:'domain'       },
+    { x:730,  label:'Redis',       sub:'Cache',       layer:'infrastructure'},
+    { x:860,  label:'PostgreSQL',  sub:'Primary DB',  layer:'infrastructure'},
+    { x:990,  label:'Elasticsearch',sub:'Search',     layer:'infrastructure'},
+    { x:1120, label:'SignalR Hub', sub:'Real-time',   layer:'presentation' },
+    { x:1250, label:'Frontend',    sub:'Update',      layer:'presentation' },
+  ];
+
+  const topY = 30, actorH = 50, lifelineEnd = 720;
+
+  actors.forEach(a => {
+    drawActor(svg, a.x, topY, a.label, a.sub, a.layer);
+    drawLifeline(svg, a.x, topY+actorH, lifelineEnd, a.layer);
+    drawActorBottom(svg, a.x, lifelineEnd+10, a.label, a.sub, a.layer);
+  });
+
+  // Section labels
+  const sections = [
+    { y:100, label:'// Presentation Layer', color:'#00d4ff' },
+    { y:240, label:'// Application Layer',  color:'#00ff9d' },
+    { y:370, label:'// Domain + Infrastructure', color:'#a855f7' },
+    { y:520, label:'// Persistence + Indexing', color:'#fbbf24' },
+    { y:640, label:'// Real-time Broadcast', color:'#00d4ff' },
+  ];
+  sections.forEach(s => {
+    svg.appendChild(el('text',{x:10, y:s.y, fill:s.color, 'font-family':'Share Tech Mono', 'font-size':'9', opacity:'0.5'}, s.label));
+    svg.appendChild(el('line',{x1:10, y1:s.y+4, x2:1310, y2:s.y+4, stroke:s.color, 'stroke-width':'0.4', opacity:'0.15'}));
+  });
+
+  const A = actors.map(a=>a.x);
+
+  // Messages
+  drawMessage(svg,id, 1, A[0],A[1], 120, 'GET /drone/{id}',       '#00d4ff');
+  drawMessage(svg,id, 2, A[1],A[2], 155, 'GetDroneState(id)',      '#00d4ff');
+  drawMessage(svg,id, 3, A[2],A[3], 190, 'CheckCache()',           '#00ff9d');
+  drawMessage(svg,id, 4, A[3],A[5], 225, 'GET drone:{id}:state',   '#fbbf24', false, 'TTL: 5s');
+  drawMessage(svg,id, 5, A[5],A[3], 260, 'CACHE MISS → null',      '#fbbf24', true);
+  drawMessage(svg,id, 6, A[2],A[4], 295, 'ValidateDomain()',       '#a855f7');
+  drawMessage(svg,id, 7, A[4],A[2], 330, 'DroneState (validated)', '#a855f7', true);
+  drawMessage(svg,id, 8, A[2],A[5], 380, 'SET drone:{id}:state',   '#fbbf24');
+  drawMessage(svg,id, 9, A[2],A[6], 420, 'INSERT DroneEvent',      '#fbbf24');
+  drawMessage(svg,id,10, A[2],A[7], 460, 'Index drone-events-*',   '#fbbf24');
+  drawMessage(svg,id,11, A[6],A[2], 495, '✓ saved',                '#fbbf24', true);
+  drawMessage(svg,id,12, A[2],A[1], 535, 'DroneStateDto',          '#00ff9d', true);
+  drawMessage(svg,id,13, A[1],A[8], 575, 'DroneStateUpdated',      '#00d4ff');
+  drawMessage(svg,id,14, A[8],A[9], 615, 'Push → all clients',     '#00d4ff');
+  drawMessage(svg,id,15, A[1],A[0], 655, '200 OK + DroneStateDto', '#00d4ff', true);
+
+  animateSteps(id, 300);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCENARIO 2: Weather Alert
+// ═══════════════════════════════════════════════════════════════
+function buildScenario2() {
+  const svg = document.getElementById('svg2');
+  const id = 'svg2';
+  msgRegistry[id] = [];
+
+  const actors = [
+    { x:80,   label:'WeatherSvc',  sub:'App Layer',   layer:'application'   },
+    { x:220,  label:'Weather API', sub:'External',    layer:'external'      },
+    { x:360,  label:'AlertManager',sub:'Application', layer:'application'   },
+    { x:500,  label:'Domain Valid.',sub:'Core',        layer:'domain'        },
+    { x:640,  label:'PostgreSQL',  sub:'Primary DB',  layer:'infrastructure'},
+    { x:780,  label:'Redis',       sub:'Counter',     layer:'infrastructure'},
+    { x:920,  label:'Elasticsearch',sub:'Search',     layer:'infrastructure'},
+    { x:1060, label:'SignalR Hub', sub:'Real-time',   layer:'presentation'  },
+    { x:1130, label:'Frontend',    sub:'Toast',       layer:'presentation'  },
+  ];
+
+  const topY = 30, actorH = 50, lifelineEnd = 640;
+
+  actors.forEach(a => {
+    drawActor(svg, a.x, topY, a.label, a.sub, a.layer);
+    drawLifeline(svg, a.x, topY+actorH, lifelineEnd, a.layer);
+    drawActorBottom(svg, a.x, lifelineEnd+10, a.label, a.sub, a.layer);
+  });
+
+  const A = actors.map(a=>a.x);
+
+  drawMessage(svg,id, 1, A[0],A[1], 110, 'Poll /weather/conditions', '#ff6b35');
+  drawMessage(svg,id, 2, A[1],A[0], 145, 'WeatherData (wind > 15m/s)', '#ff6b35', true);
+  drawMessage(svg,id, 3, A[0],A[2], 185, 'TriggerAlert(severity=HIGH)', '#00ff9d');
+  drawMessage(svg,id, 4, A[2],A[3], 220, 'ValidateAlert()', '#a855f7');
+  drawMessage(svg,id, 5, A[3],A[2], 255, 'Alert (valid, priority=2)', '#a855f7', true);
+  drawMessage(svg,id, 6, A[2],A[4], 300, 'INSERT Alert + DroneEvent', '#fbbf24');
+  drawMessage(svg,id, 7, A[4],A[2], 335, '✓ alertId=uuid', '#fbbf24', true);
+  drawMessage(svg,id, 8, A[2],A[5], 370, 'INCR drone:{id}:alerts', '#fbbf24', false, 'TTL: 60s');
+  drawMessage(svg,id, 9, A[2],A[6], 410, 'Index drone-events-*', '#fbbf24');
+  drawMessage(svg,id,10, A[2],A[7], 455, 'AlertReceived(alertDto)', '#00d4ff');
+  drawMessage(svg,id,11, A[7],A[8], 490, 'Push to subscribed clients', '#00d4ff');
+  drawMessage(svg,id,12, A[8],A[7], 530, 'Toast: ⚠️ WIND ALERT', '#00d4ff', true);
+
+  animateSteps(id, 300);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCENARIO 3: Search Alerts
+// ═══════════════════════════════════════════════════════════════
+function buildScenario3() {
+  const svg = document.getElementById('svg3');
+  const id = 'svg3';
+  msgRegistry[id] = [];
+
+  const actors = [
+    { x:80,  label:'Frontend',     sub:'React',      layer:'presentation'  },
+    { x:210, label:'SearchCtrl',   sub:'ASP.NET',    layer:'presentation'  },
+    { x:370, label:'SearchService',sub:'Application',layer:'application'   },
+    { x:560, label:'Elasticsearch',sub:'Search Idx', layer:'infrastructure'},
+    { x:730, label:'SearchService',sub:'Map DTOs',   layer:'application'   },
+    { x:870, label:'Frontend',     sub:'Display',    layer:'presentation'  },
+  ];
+
+  const topY = 30, actorH = 50, lifelineEnd = 555;
+
+  actors.forEach(a => {
+    drawActor(svg, a.x, topY, a.label, a.sub, a.layer);
+    drawLifeline(svg, a.x, topY+actorH, lifelineEnd, a.layer);
+    drawActorBottom(svg, a.x, lifelineEnd+10, a.label, a.sub, a.layer);
+  });
+
+  const A = actors.map(a=>a.x);
+
+  drawMessage(svg,id, 1, A[0],A[1], 110, 'GET /search?q=&type=&date=', '#00d4ff');
+  drawMessage(svg,id, 2, A[1],A[2], 150, 'SearchAlerts(query, filters)', '#00d4ff');
+  drawMessage(svg,id, 3, A[2],A[3], 195, 'bool query + range filter', '#fbbf24');
+  drawMessage(svg,id, 4, A[3],A[2], 240, 'hits[] + aggregations', '#fbbf24', true, 'p99 < 50ms');
+  drawMessage(svg,id, 5, A[2],A[4], 280, 'Map hits → AlertDto[]', '#00ff9d');
+  drawMessage(svg,id, 6, A[4],A[2], 315, 'SearchResultDto', '#00ff9d', true);
+  drawMessage(svg,id, 7, A[2],A[1], 355, 'SearchResultDto', '#00d4ff', true);
+  drawMessage(svg,id, 8, A[1],A[0], 390, '200 OK + results', '#00d4ff', true);
+  drawMessage(svg,id, 9, A[0],A[5], 430, 'Render results list', '#00d4ff');
+  drawMessage(svg,id,10, A[5],A[0], 470, '✓ UI updated (< 50ms)', '#00ff9d', true);
+
+  animateSteps(id, 300);
+}
+
+// ─── Tab switching ────────────────────────────────────────────
+function switchTab(n) {
+  document.querySelectorAll('.diagram-wrap').forEach(d => d.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab-${n}`).classList.add('active');
+  document.querySelector(`[data-tab="${n}"]`).classList.add('active');
+  setTimeout(() => animateScenario(n), 100);
+}
+
+// ─── Init ─────────────────────────────────────────────────────
+buildScenario1();
+buildScenario2();
+buildScenario3();
+</script>
+</body>
+</html>

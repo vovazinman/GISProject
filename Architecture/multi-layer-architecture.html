@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Drone System - Multi-Layer Architecture</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+        
+        .architecture-container {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        
+        /* Vertical Layers */
+        .vertical-architecture {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .layer {
+            background: white;
+            border: 3px solid;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+        
+        .layer:hover {
+            transform: translateX(5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+        }
+        
+        .layer-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid;
+        }
+        
+        .layer-number {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.4em;
+            color: white;
+        }
+        
+        .layer-title {
+            flex: 1;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        
+        .layer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .component {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 15px;
+            border-left: 4px solid;
+        }
+        
+        .component-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 1.05em;
+        }
+        
+        .component-items {
+            font-size: 0.85em;
+            color: #4a5568;
+            line-height: 1.8;
+        }
+        
+        /* Layer Colors */
+        .presentation {
+            border-color: #3b82f6;
+        }
+        .presentation .layer-header { border-color: #3b82f6; }
+        .presentation .layer-number { background: #3b82f6; }
+        .presentation .layer-title { color: #3b82f6; }
+        .presentation .component { border-color: #3b82f6; }
+        
+        .application {
+            border-color: #10b981;
+        }
+        .application .layer-header { border-color: #10b981; }
+        .application .layer-number { background: #10b981; }
+        .application .layer-title { color: #10b981; }
+        .application .component { border-color: #10b981; }
+        
+        .domain {
+            border-color: #8b5cf6;
+        }
+        .domain .layer-header { border-color: #8b5cf6; }
+        .domain .layer-number { background: #8b5cf6; }
+        .domain .layer-title { color: #8b5cf6; }
+        .domain .component { border-color: #8b5cf6; }
+        
+        .infrastructure {
+            border-color: #ef4444;
+        }
+        .infrastructure .layer-header { border-color: #ef4444; }
+        .infrastructure .layer-number { background: #ef4444; }
+        .infrastructure .layer-title { color: #ef4444; }
+        .infrastructure .component { border-color: #ef4444; }
+        
+        .crosscutting {
+            border-color: #f59e0b;
+        }
+        .crosscutting .layer-header { border-color: #f59e0b; }
+        .crosscutting .layer-number { background: #f59e0b; }
+        .crosscutting .layer-title { color: #f59e0b; }
+        .crosscutting .component { border-color: #f59e0b; }
+        
+        /* Drone Sublayers */
+        .drone-sublayers {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px dashed #8b5cf6;
+        }
+        
+        .sublayer {
+            background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+            border: 2px solid #a78bfa;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        
+        .sublayer-title {
+            font-weight: bold;
+            color: #6b21a8;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+        
+        .sublayer-items {
+            font-size: 0.8em;
+            color: #5b21b6;
+            line-height: 1.6;
+        }
+        
+        /* Dependency Arrows */
+        .dependency-flow {
+            text-align: center;
+            padding: 10px;
+            color: #64748b;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        /* Onion Diagram */
+        .onion-architecture {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 800px;
+            position: relative;
+        }
+        
+        .onion-title {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 40px;
+        }
+        
+        .onion-circle {
+            position: absolute;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .onion-circle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+        
+        .onion-1 {
+            width: 600px;
+            height: 600px;
+            background: rgba(239, 68, 68, 0.2);
+            border: 4px solid #ef4444;
+            z-index: 1;
+        }
+        
+        .onion-2 {
+            width: 480px;
+            height: 480px;
+            background: rgba(139, 92, 246, 0.3);
+            border: 4px solid #8b5cf6;
+            z-index: 2;
+        }
+        
+        .onion-3 {
+            width: 360px;
+            height: 360px;
+            background: rgba(16, 185, 129, 0.4);
+            border: 4px solid #10b981;
+            z-index: 3;
+        }
+        
+        .onion-4 {
+            width: 240px;
+            height: 240px;
+            background: rgba(59, 130, 246, 0.5);
+            border: 4px solid #3b82f6;
+            z-index: 4;
+        }
+        
+        .onion-label {
+            font-size: 1.2em;
+            padding: 10px;
+        }
+        
+        /* Code Structure */
+        .code-structure {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 30px;
+            border-radius: 15px;
+            margin-top: 40px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+        }
+        
+        .code-title {
+            color: #22c55e;
+            font-weight: bold;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+        
+        .folder {
+            color: #fbbf24;
+            margin-left: 20px;
+        }
+        
+        .file {
+            color: #60a5fa;
+            margin-left: 40px;
+        }
+        
+        .comment {
+            color: #94a3b8;
+        }
+        
+        /* Benefits */
+        .benefits {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+        
+        .benefit-card {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 3px solid #22c55e;
+            border-radius: 12px;
+            padding: 25px;
+        }
+        
+        .benefit-title {
+            font-weight: bold;
+            color: #166534;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .benefit-content {
+            color: #4a5568;
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏗️ Multi-Drone System - Multi-Layer Architecture</h1>
+        <p class="subtitle">Clean Architecture / Onion Architecture Pattern</p>
+        
+        <div class="architecture-container">
+            <!-- Vertical Layers View -->
+            <div class="vertical-architecture">
+                <!-- Layer 1: Presentation -->
+                <div class="layer presentation">
+                    <div class="layer-header">
+                        <div class="layer-number">1</div>
+                        <div class="layer-title">Presentation Layer</div>
+                    </div>
+                    <div class="layer-content">
+                        <div class="component">
+                            <div class="component-title">📡 API Controllers</div>
+                            <div class="component-items">
+                                • DroneController<br>
+                                • AlertController<br>
+                                • TelemetryController<br>
+                                • SearchController<br>
+                                • MissionController
+                            </div>
+                        </div>
+                        <div class="component">
+                            <div class="component-title">🔌 SignalR Hubs</div>
+                            <div class="component-items">
+                                • DroneHub<br>
+                                • AlertHub<br>
+                                • TelemetryHub<br>
+                                • Real-time broadcasts<br>
+                                • Group management
+                            </div>
+                        </div>
+                        <div class="component">
+                            <div class="component-title">📋 DTOs</div>
+                            <div class="component-items">
+                                • DroneStateDto<br>
+                                • AlertDto<br>
+                                • CommandDto<br>
+                                • Request/Response models<br>
+                                • View models
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="dependency-flow">⬇️ Depends on ⬇️</div>
+                
+                <!-- Layer 2: Application -->
+                <div class="layer application">
+                    <div class="layer-header">
+                        <div class="layer-number">2</div>
+                        <div class="layer-title">Application Layer (Business Logic)</div>
+                    </div>
+                    <div class="layer-content">
+                        <div class="component">
+                            <div class="component-title">🎯 Use Cases / Services</div>
+                            <div class="component-items">
+                                • DroneService<br>
+                                • FleetManager<br>
+                                • MissionService<br>
+                                • AlertManager<br>
+                                • TelemetryService
+                            </div>
+                        </div>
+                        <div class="component">
+                            <div class="component-title">📊 Orchestration</div>
+                            <div class="component-items">
+                                • Command handlers<br>
+                                • Query handlers<br>
+                                • Business workflows<br>
+                                • Validation logic<br>
+                                • Mapping (Entity ↔ DTO)
+                            </div>
+                        </div>
+                        <div class="component">
+                            <div class="component-title">🔄 External Integration</div>
+                            <div class="component-items">
+                                • WeatherService<br>
+                                • NotificationService<br>
+                                • CacheService<br>
+                                • SearchService<br>
+                                • Analytics Service
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="dependency-flow">⬇️ Depends on ⬇️</div>
+                
+                <!-- Layer 3: Domain (Core) -->
+                <div class="layer domain">
+                    <div class="layer-header">
+                        <div class="layer-number">3</div>
+                        <div class="layer-title">Domain Layer (Core Business Rules)</div>
+                    </div>
+                    <div class="layer-content">
+                        <div class="component">
+                            <div class="component-title">🚁 Entities</div>
+                            <div class="component-items">
+                                • Drone<br>
+                                • Mission<br>
+                                • FlightPath<br>
+                                • DroneEvent<br>
+                                • Telemetry
+                            </div>
+                        </div>
+                        <div class="component">
+                            <div class="component-title">📐 Value Objects</div>
+                            <div class="component-items">
+                                • Position (X, Y, Z)<br>
+                                • Velocity<br>
+                                • BatteryLevel<br>
+                                • DroneStatus<br>
+                                • Waypoint
+                            </div>
+                        </div>
+                        <div class="component">
+                            <div class="component-title">🎮 Domain Services</div>
+                            <div class="component-items">
+                                • FlightCalculator<br>
+                                • PathPlanner<br>
+                                • CollisionDetector<br>
+                                • BatteryEstimator<br>
+                                • SafetyValidator
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Drone-Specific Sublayers -->
+                    <div class="drone-sublayers">
+                        <div class="sublayer">
+                            <div class="sublayer-title">🤖 AI Layer</div>
+                            <div class="sublayer-items">
+                                • Pathfinding (A*, RRT)<br>
+                                • Obstacle avoidance<br>
+                                • Swarm intelligence<br>
+                                • Decision making<br>
+                                • Machine learning models
+                            </div>
+                        </div>
+                        
+                        <div class="sublayer">
+                            <div class="sublayer-title">⚙️ Physics Engine</div>
+                            <div class="sublayer-items">
+                                • Kinematics<br>
+                                • Dynamics simulation<br>
+                                • Wind effects<br>
+                                • Gravity compensation<br>
+                                • Motor modeling
+                            </div>
+                        </div>
+                        
+                        <div class="sublayer">
+                            <div class="sublayer-title">🧭 Navigation</div>
+                            <div class="sublayer-items">
+                                • GPS integration<br>
+                                • IMU fusion<br>
+                                • SLAM (if indoor)<br>
+                                • Waypoint following<br>
+                                • Return-to-home
+                            </div>
+                        </div>
+                        
+                        <div class="sublayer">
+                            <div class="sublayer-title">🎛️ Control Systems</div>
+                            <div class="sublayer-items">
+                                • PID controllers<br>
+                                • Attitude control<br>
+                                • Position hold<br>
+                                • Altitude control<br>
+                                • Failsafe logic
+                            </div>
+                        </div>
+                        
+                        <div class="sublayer">
+                            <div class="sublayer-title">🔋 Battery Management</div>
+                            <div class="sublayer-items">
+                                • Battery estimation<br>
+                                • Drain prediction<br>
+                                • Critical alerts<br>
+                                • RTH calculation<br>
+                                • Power optimization
+                            </div>
+                        </div>
+                        
+                        <div class="sublayer">
+                            <div class="sublayer-title">🛡️ Safety Systems</div>
+                            <div class="sublayer-items">
+                                • Geofencing<br>
+                                • No-fly zones<br>
+                                • Collision detection<br>
+                                • Emergency landing<br>
+                                • Health monitoring
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="dependency-flow">⬇️ Depends on ⬇️</div>
+                
+                <!-- Layer 4: Infrastructure -->
+                <div class="layer infrastructure">
+                    <div class="layer-header">
+                        <div class="layer-number">4</div>
+                        <div class="layer-title">Infrastructure Layer (Data Access & External)</div>
+                    </div>
+                    <div class="layer-content">
+                        <div class="component">
+                            <div class="component-title">💾 Data Access</div>
+                            <div class="component-items">
+                                • DroneRepository<br>
+                                • EventRepository<br>
+                                • TelemetryRepository<br>
+                                • MissionRepository<br>
+                                • Unit of Work pattern
+                            </div>
+                        </div>
+                        <div class="component">
+                            <div class="component-title">🗄️ Database Contexts</div>
+                            <div class="component-items">
+                                • PostgreSQL (EF Core)<br>
+                                • Redis (StackExchange)<br>
+                                • Elasticsearch (NEST)<br>
+                                • Migrations<br>
+                                • Seeding
+                            </div>
+                        </div>
+                        <div class="component">
+                            <div class="component-title">🌐 External Services</div>
+                            <div class="component-items">
+                                • Weather API client<br>
+                                • Email/SMS gateway<br>
+                                • Cloud storage (S3)<br>
+                                • Third-party APIs<br>
+                                • HTTP clients
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="dependency-flow">⬇️ Uses ⬇️</div>
+                
+                <!-- Layer 5: Cross-Cutting Concerns -->
+                <div class="layer crosscutting">
+                    <div class="layer-header">
+                        <div class="layer-number">5</div>
+                        <div class="layer-title">Cross-Cutting Concerns</div>
+                    </div>
+                    <div class="layer-content">
+                        <div class="component">
+                            <div class="component-title">📝 Logging</div>
+                            <div class="component-items">
+                                • Serilog<br>
+                                • Structured logging<br>
+                                • Log levels<br>
+                                • Sinks (Console, File, Seq)<br>
+                                • Correlation IDs
+                            </div>
+                        </div>
+                        <div class="component">
+                            <div class="component-title">🔒 Security</div>
+                            <div class="component-items">
+                                • JWT authentication<br>
+                                • Authorization policies<br>
+                                • Rate limiting<br>
+                                • CORS configuration<br>
+                                • Encryption
+                            </div>
+                        </div>
+                        <div class="component">
+                            <div class="component-title">⚡ Performance</div>
+                            <div class="component-items">
+                                • Caching strategies<br>
+                                • Response compression<br>
+                                • Connection pooling<br>
+                                • Lazy loading<br>
+                                • Profiling
+                            </div>
+                        </div>
+                        <div class="component">
+                            <div class="component-title">📊 Monitoring</div>
+                            <div class="component-items">
+                                • Health checks<br>
+                                • Metrics collection<br>
+                                • Distributed tracing<br>
+                                • Error tracking<br>
+                                • Alerts
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Onion Architecture View -->
+            <div class="onion-architecture">
+                <div class="onion-title">🧅 Onion Architecture View</div>
+                
+                <div class="onion-circle onion-1">
+                    <div class="onion-label">
+                        Infrastructure<br>
+                        <span style="font-size: 0.7em;">(DB, External APIs, Cache)</span>
+                    </div>
+                </div>
+                
+                <div class="onion-circle onion-2">
+                    <div class="onion-label">
+                        Domain Layer<br>
+                        <span style="font-size: 0.7em;">(Entities, AI, Physics)</span>
+                    </div>
+                </div>
+                
+                <div class="onion-circle onion-3">
+                    <div class="onion-label">
+                        Application<br>
+                        <span style="font-size: 0.7em;">(Services, Use Cases)</span>
+                    </div>
+                </div>
+                
+                <div class="onion-circle onion-4">
+                    <div class="onion-label">
+                        Presentation<br>
+                        <span style="font-size: 0.7em;">(API, SignalR)</span>
+                    </div>
+                </div>
+                
+                <div style="position: absolute; bottom: 20px; text-align: center; color: #64748b; font-size: 0.9em;">
+                    <strong>Dependency Rule:</strong><br>
+                    Outer layers depend on inner layers<br>
+                    Inner layers know nothing about outer layers
+                </div>
+            </div>
+        </div>
+        
+        <!-- Project Structure -->
+        <div class="code-structure">
+            <div class="code-title">📁 Project Structure (Solution)</div>
+<pre>
+DroneFleetSystem/
+│
+├── <span class="folder">DroneFleetSystem.Presentation/</span>          <span class="comment">// Layer 1: Controllers, Hubs</span>
+│   ├── <span class="file">Controllers/</span>
+│   │   ├── DroneController.cs
+│   │   ├── AlertController.cs
+│   │   └── TelemetryController.cs
+│   ├── <span class="file">Hubs/</span>
+│   │   ├── DroneHub.cs
+│   │   └── AlertHub.cs
+│   ├── <span class="file">DTOs/</span>
+│   │   ├── DroneStateDto.cs
+│   │   └── CommandDto.cs
+│   └── Program.cs
+│
+├── <span class="folder">DroneFleetSystem.Application/</span>          <span class="comment">// Layer 2: Business Logic</span>
+│   ├── <span class="file">Services/</span>
+│   │   ├── DroneService.cs
+│   │   ├── FleetManager.cs
+│   │   ├── AlertManager.cs
+│   │   └── MissionService.cs
+│   ├── <span class="file">Interfaces/</span>
+│   │   ├── IDroneService.cs
+│   │   └── IFleetManager.cs
+│   ├── <span class="file">Mappings/</span>
+│   │   └── AutoMapperProfile.cs
+│   └── <span class="file">Validators/</span>
+│       └── CommandValidator.cs
+│
+├── <span class="folder">DroneFleetSystem.Domain/</span>              <span class="comment">// Layer 3: Core Domain</span>
+│   ├── <span class="file">Entities/</span>
+│   │   ├── Drone.cs
+│   │   ├── Mission.cs
+│   │   ├── FlightPath.cs
+│   │   └── DroneEvent.cs
+│   ├── <span class="file">ValueObjects/</span>
+│   │   ├── Position.cs
+│   │   ├── Velocity.cs
+│   │   └── BatteryLevel.cs
+│   ├── <span class="file">DomainServices/</span>
+│   │   ├── FlightCalculator.cs
+│   │   ├── PathPlanner.cs
+│   │   └── CollisionDetector.cs
+│   └── <span class="file">DroneSubsystems/</span>               <span class="comment">// 🚁 Drone-Specific Layers</span>
+│       ├── <span class="file">AI/</span>
+│       │   ├── PathfindingEngine.cs
+│       │   ├── ObstacleAvoidance.cs
+│       │   └── SwarmIntelligence.cs
+│       ├── <span class="file">Physics/</span>
+│       │   ├── PhysicsSimulator.cs
+│       │   ├── WindModel.cs
+│       │   └── KinematicsEngine.cs
+│       ├── <span class="file">Navigation/</span>
+│       │   ├── GPSNavigator.cs
+│       │   ├── IMUFusion.cs
+│       │   └── WaypointFollower.cs
+│       ├── <span class="file">Control/</span>
+│       │   ├── PIDController.cs
+│       │   ├── AttitudeController.cs
+│       │   └── PositionController.cs
+│       ├── <span class="file">Battery/</span>
+│       │   ├── BatteryEstimator.cs
+│       │   ├── PowerOptimizer.cs
+│       │   └── RTHCalculator.cs
+│       └── <span class="file">Safety/</span>
+│           ├── GeofenceValidator.cs
+│           ├── CollisionPrevention.cs
+│           └── EmergencyHandler.cs
+│
+├── <span class="folder">DroneFleetSystem.Infrastructure/</span>      <span class="comment">// Layer 4: Data & External</span>
+│   ├── <span class="file">Data/</span>
+│   │   ├── ApplicationDbContext.cs
+│   │   ├── Repositories/
+│   │   │   ├── DroneRepository.cs
+│   │   │   └── EventRepository.cs
+│   │   └── Migrations/
+│   ├── <span class="file">Caching/</span>
+│   │   ├── RedisCacheService.cs
+│   │   └── CacheKeys.cs
+│   ├── <span class="file">Search/</span>
+│   │   └── ElasticsearchService.cs
+│   └── <span class="file">ExternalServices/</span>
+│       ├── WeatherApiClient.cs
+│       └── NotificationService.cs
+│
+└── <span class="folder">DroneFleetSystem.CrossCutting/</span>       <span class="comment">// Layer 5: Shared</span>
+    ├── <span class="file">Logging/</span>
+    │   └── LoggingConfiguration.cs
+    ├── <span class="file">Security/</span>
+    │   ├── JwtConfiguration.cs
+    │   └── AuthorizationPolicies.cs
+    └── <span class="file">Monitoring/</span>
+        └── HealthChecks.cs
+</pre>
+        </div>
+        
+        <!-- Benefits -->
+        <div class="benefits">
+            <div class="benefit-card">
+                <div class="benefit-title">
+                    ✅ Separation of Concerns
+                </div>
+                <div class="benefit-content">
+                    Each layer has a single, well-defined responsibility. Controllers only handle HTTP requests, Domain contains only business rules, Infrastructure only deals with external systems.
+                </div>
+            </div>
+            
+            <div class="benefit-card">
+                <div class="benefit-title">
+                    🔄 Dependency Inversion
+                </div>
+                <div class="benefit-content">
+                    High-level modules (Domain) don't depend on low-level modules (Infrastructure). Both depend on abstractions (interfaces). Easy to swap implementations (mock DB for testing).
+                </div>
+            </div>
+            
+            <div class="benefit-card">
+                <div class="benefit-title">
+                    🧪 Testability
+                </div>
+                <div class="benefit-content">
+                    Domain logic can be tested without database, API, or external services. Mock repositories and services for unit testing. Integration tests for each layer independently.
+                </div>
+            </div>
+            
+            <div class="benefit-card">
+                <div class="benefit-title">
+                    🔧 Maintainability
+                </div>
+                <div class="benefit-content">
+                    Easy to locate code (where does X belong?). Clear boundaries between layers. Changes in one layer don't cascade. New developers understand structure quickly.
+                </div>
+            </div>
+            
+            <div class="benefit-card">
+                <div class="benefit-title">
+                    📦 Reusability
+                </div>
+                <div class="benefit-content">
+                    Domain layer can be reused across different UIs (Web, Mobile, Desktop). Business logic independent of presentation. Share core logic between multiple applications.
+                </div>
+            </div>
+            
+            <div class="benefit-card">
+                <div class="benefit-title">
+                    🚀 Scalability
+                </div>
+                <div class="benefit-content">
+                    Each layer can be scaled independently. Replace PostgreSQL with MongoDB without touching domain. Add new presentation layer (gRPC) without changing business logic.
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
