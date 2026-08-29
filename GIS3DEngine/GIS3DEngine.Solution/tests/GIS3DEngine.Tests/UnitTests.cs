@@ -120,9 +120,9 @@ public class GeoCoordinateTests
     [Fact]
     public void RadiansConversion_IsCorrect()
     {
-        var c = new GeoCoordinate(180, 90);
-        Assert.Equal(Math.PI, c.LatitudeRadians, 6);
-        Assert.Equal(Math.PI / 2, c.LongitudeRadians, 6);
+        var c = new GeoCoordinate(90, 180);
+        Assert.Equal(Math.PI / 2, c.LatitudeRadians, 6);
+        Assert.Equal(Math.PI, c.LongitudeRadians, 6);
     }
 }
 
