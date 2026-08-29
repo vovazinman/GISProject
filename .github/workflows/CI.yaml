@@ -1,0 +1,59 @@
+name: CI
+
+on:
+    pull_request:
+        branches: [ main ]
+        paths:
+            - 'GIS3DEngine/**'
+            - '.github/workflows/ci.yaml'
+    push:
+        branches: [main]
+        paths:
+            - 'GIS3DEngine/**'
+            - '.github/workflows/ci.yaml'
+            
+concurrency:
+    group: ci-${{ github.ref }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+        
+env:
+    SOLUTION: GIS3DEngine/GIS3DEngine.Solution/GIS3DEngine.sln
+    DOTNET_NOLOGO: true
+    DOTNET_CLI_TELEMETRY_OPTOUT: true
+        
+jobs:
+    build-and-test:
+        runs-on: ubuntu-latest        
+        
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0  #all history
+
+            - name: Setup .Net
+              uses: actions/setup-dotnet@v4
+              with:
+                  global-json-file: GIS3DEngine/GIS3DEngine.Solution/global.json
+                  
+            - name: Restore
+              run: dotnet restore ${{ env.SOLUTION }}
+              
+            - name: Build
+              run: dotnet build ${{ env.SOLUTION }} --configuration Release --no-restore
+              
+            - name: Test
+              run: >
+                    dotnet test ${{ env.SOLUTION }}
+                    --configuration Release
+                    --no-build
+                    --logger "trx;LogFileName=test-results.trx"
+                    --results-directory ./TestResults
+                  
+            - name: Upload test results
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: test-results
+                  path: ./TestResults
+                  retention-days: 7
